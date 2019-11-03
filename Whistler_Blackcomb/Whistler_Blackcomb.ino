@@ -1,4 +1,13 @@
-//make sure to select teensy 4.0 for boards
+/*
+Ino file for the Whistler Blackcomb rocket
+*/
+
+/*Includes------------------------------------------------*/
+#include "statemachine.h"
+
+
+/*Constants-----------------------------------------------*/
+
 void setup() {
   // put your setup code here, to run once:
 
