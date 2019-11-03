@@ -6,7 +6,7 @@ Implements state switching and caling of state specific functions
 */
 
 /*Includes------------------------------------------------------*/
-#include "statemachine.h"
+#include "includes\statemachine.h"
 
 /*Constants-----------------------------------------------------*/
 
@@ -19,4 +19,8 @@ void stateMachine(FlightState * currentState){
     switch(*currentState){
 
     }
+}
+
+int test(int one, int two){
+    return one +two;
 }

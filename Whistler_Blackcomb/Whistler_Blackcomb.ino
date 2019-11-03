@@ -3,14 +3,14 @@ Ino file for the Whistler Blackcomb rocket
 */
 
 /*Includes------------------------------------------------*/
-#include "statemachine.h"
+#include "includes\statemachine.h"
 
 
 /*Constants-----------------------------------------------*/
 
 void setup() {
   // put your setup code here, to run once:
-
+  int hi = test(1,2);
 }
 
 void loop() {

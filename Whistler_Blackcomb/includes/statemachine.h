@@ -26,5 +26,6 @@ enum FlightState{
 /*Functions----------------------------------------------------------*/
 void switchState(FlightState * currentState, FlightState newState);
 void stateMachine(FlightState * currentState);
+int test(int one, int two);
 
 #endif
