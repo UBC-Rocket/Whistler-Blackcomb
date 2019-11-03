@@ -1,14 +1,12 @@
-
-
 #ifndef	ARDUINO_LABJACK_H
 #define ARDUINO_LABJACK_H
 
 #include <Arduino.h>
-#include "ArduinoLabjack.h"
 #include <Ethernet.h>
 #include <SPI.h>
 #include <ArduinoRS485.h>
 #include <ArduinoModbus.h>
+
 
 #ifdef __cplusplus
 extern "C" {
