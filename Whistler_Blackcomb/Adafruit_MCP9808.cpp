@@ -40,7 +40,7 @@
 #include <Wire.h>
 #endif
 
-#include "Adafruit_MCP9808.h"
+#include "includes/Adafruit_MCP9808.h"
 
 /*!
  *    @brief  Instantiates a new MCP9808 class

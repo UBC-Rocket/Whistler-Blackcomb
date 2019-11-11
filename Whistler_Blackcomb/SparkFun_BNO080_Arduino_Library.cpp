@@ -26,8 +26,8 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-#include "SparkFun_BNO080_Arduino_Library.h"
+	
+#include "includes/SparkFun_BNO080_Arduino_Library.h"
 
 //Attempt communication with the device
 //Return true if we got a 'Polo' back from Marco
