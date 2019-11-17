@@ -8,10 +8,8 @@
             "args": [
                 "-g",
                 "-o",
-                "test_functions",
-                "test_functions.cpp",
-                "functions",
-                "functions.cpp"
+                "main-test",
+                "main-test.cpp"
             ],
             "group": {
                 "kind": "build",
