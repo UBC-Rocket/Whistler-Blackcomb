@@ -9,7 +9,9 @@
                 "-g",
                 "-o",
                 "test_functions",
-                "test_functions.cpp"
+                "test_functions.cpp",
+                "functions",
+                "functions.cpp"
             ],
             "group": {
                 "kind": "build",
