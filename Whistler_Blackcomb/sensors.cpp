@@ -9,6 +9,7 @@ Conatiains implementation of sensor initializations and data pulling
 #include "includes/Adafruit_MCP9808.h"
 #include "includes/SparkFun_BNO080_Arduino_Library.h"
 #include "includes/SparkFun_LIS331.h"
+#include "includes/TinyGPS++.h"
 
 /*Constants----------------------------------------------------------------*/
 
@@ -56,8 +57,11 @@ void initMCP9808(Adafruit_MCP9808 *sensor, uint8_t address, uint8_t res){
     sensor->setResolution(res);
 }
 
-void pollSensors(LIS331 *accel1, BNO080 *accel2, Adafruit_MCP9808 *temp, int16_t accel1Data[], float accel2Data[], float &tempData){
+void pollSensors(LIS331 *accel1, BNO080 *accel2, Adafruit_MCP9808 *temp, int16_t accel1Data[], float accel2Data[], float &tempData, TinyGPSPlus *gps, float &lat, float &lon){
     accel1->readAxes(accel1Data[0], accel1Data[1], accel1Data[2]);
     readAxesBNO080(accel2, accel2Data[0], accel2Data[1], accel2Data[2]);
     tempData = temp->readTempC();
+
+    lat = gps->location.lat;
+    lon = gps->location.lng;
 }

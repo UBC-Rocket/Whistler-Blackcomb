@@ -8,6 +8,15 @@ LIS331 accel1;
 BNO080 accel2;
 Adafruit_MCP9808 temp =Adafruit_MCP9808();
 
+// GPS 
+TinyGPSPlus gps;
+static const int RXPin = 4, TXPin = 3;
+static const uint32_t GPSBaud = 4800;
+float lat;
+float lon;
+
+SoftwareSerial ss(RXPin, TXPin); // The serial connection to the GPS device
+
 //BNO080 myBNO080;
 int16_t accel1Data[3];
 float accel2Data[3];
@@ -21,6 +30,7 @@ void setup() {
   initLIS331(&accel1, 0x19);
   initBNO080(&accel2, 0x4B, 50);
   initMCP9808(&temp, 0x18, 3);
+  ss.begin(GPSBaud); 
   
 }
 
@@ -41,7 +51,7 @@ void loop() {
   Serial.print(F(","));
   temp=x3.readTempC();
   Serial.println(temp);*/
-  pollSensors(&accel1, &accel2, &temp, accel1Data, accel2Data, tempData);
+  pollSensors(&accel1, &accel2, &temp, accel1Data, accel2Data, tempData, &gps, lat, lon);
   Serial.println(accel1Data[0]);
   Serial.println(accel1Data[1]);
   Serial.println(accel1Data[2]);
@@ -49,5 +59,23 @@ void loop() {
   Serial.println(accel2Data[1]);
   Serial.println(accel2Data[2]);
   Serial.println(tempData);
+  Serial.println("Lat: " + lat + " Lon: " + lon);
+  
+  smartDelay(1000);
+
+  if (millis() > 5000 && gps.charsProcessed() < 10)
+    Serial.println(F("No GPS data received: check wiring"));
   delay(1000);
+}
+
+// This custom version of delay() ensures that the gps object
+// is being "fed".
+static void smartDelay(unsigned long ms)
+{
+  unsigned long start = millis();
+  do 
+  {
+    while (ss.available())
+      gps.encode(ss.read());
+  } while (millis() - start < ms);
 }
