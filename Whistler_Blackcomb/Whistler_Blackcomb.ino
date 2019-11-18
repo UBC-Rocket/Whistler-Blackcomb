@@ -2,6 +2,7 @@
 
 /*Includes---------------------------------------------------------*/
 #include "includes\sensors.h"
+#include <SoftwareSerial.h>
 //#include "includes\SparkFun_LIS331.h"
 
 LIS331 accel1;
