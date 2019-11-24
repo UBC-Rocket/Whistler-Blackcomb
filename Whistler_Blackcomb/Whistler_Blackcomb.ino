@@ -1,6 +1,15 @@
 //make sure to select teensy 4.0 for boards
+#include "includes\teensy_com.h"
+#include "includes\options.h"
+
+#include <Arduino.h>
+#include <HardwareSerial.h>
+
+
 void setup() {
-  // put your setup code here, to run once:
+
+  SerialUSB.begin(9600);
+  setupSerialCom();
 
 }
 
