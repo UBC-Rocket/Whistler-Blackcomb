@@ -1,5 +1,6 @@
 #include "includes\teensy_com.h"
 #include "includes\options.h"
+#include "includes\statemachine.h"
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
@@ -8,62 +9,38 @@
 //Setting up on can bus 1, rx = 23, tx = 22
 
 #define Com_Baud 9600
+
+//For Each system Com 1 is the highest address other than itself
+
 #ifdef SYSTEM_1
-    #define Unit_2 Serial1
-    #define Unit_3 Serial4
+    #define Com_1 Serial1
+    #define Com_2 Serial4
 #endif
 #ifdef SYSTEM_2
-    #define Unit_1 Serial1
-    #define Unit_3 Serial2
+    #define Com_1 Serial1
+    #define Com_2 Serial2
 #endif
 #ifdef SYSTEM_3
-    #define Unit_1 Serial4
-    #define Unit_2 Serial2
+    #define Com_1 Serial1
+    #define Com_2 Serial4
 #endif
 
-static int message_id;
 
 void setupSerialCom(){
-    #ifdef SYSTEM_1
-        Unit_2.begin(Com_Baud);
-        Unit_3.begin(Com_Baud);
-    #endif
-    #ifdef SYSTEM_2
-        Unit_1.begin(Com_Baud);
-        Unit_3.begin(com_Baud);
-    #endif
-    #ifdef SYSTEM_3
-        Unit_1.begin(Com_Baud);
-        Unit_2.begin(Com_Baud);
-    #endif
+    Com_1.begin(Com_Baud);
+    Com_2.begin(Com_Baud);
 }
-
-void sendMessage(unsigned char message, int system_address){
-    #ifdef SYSTEM_1
-        if(system_address == 2)
-            Unit_2.write(message);
-        else if(system_address == 3)
-            Unit_3.write(message);
-    #endif
-    #ifdef SYSTEM_2
-        if(system_address == 1)
-            Unit_1.write(message);
-        else if(system_address == 3)
-            Unit_3.write(message);
-    #endif
-    #ifdef SYSTEM_3
-        if(system_address == 2)
-            Unit_2.write(message);
-        else if(system_address == 1)
-            Unit_1.write(message);
-    #endif
-
-
+//address 1 or 2 for the higher or lower system
+void sendMessage(unsigned char message, unsigned char system_address){
+    if(system_address == 1)
+        Com_1.write(message);
+    if(system_address == 2)
+        Com_2.write(message);
 }
 //message 1 is lowest system teensy id that it is communicating with
-void readMessage(char * message_1, char * message_2){
-    #ifdef SYSTEM_1
-        if()
-
-
+void readMessage(unsigned char * message_1, unsigned char * message_2){
+    if(Com_1.available())
+        *message_1 = Com_1.read();
+    if(Com_2.available())
+        *message_2 = Com_2.read();
 }

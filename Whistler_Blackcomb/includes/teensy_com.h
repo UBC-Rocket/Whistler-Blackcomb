@@ -8,9 +8,11 @@
 
 void setupSerialCom();
 
-void sendMessage(unsigned char message, int system_address);
+void sendMessage(unsigned char message, unsigned char system_address);
 
-void readMessage(char message[]);
+void readMessage(unsigned char *, unsigned char *);
+
+void generateMessage()
 
 
 #endif
