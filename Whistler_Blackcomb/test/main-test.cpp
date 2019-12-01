@@ -1,7 +1,7 @@
  //main.cc
 #define CATCH_CONFIG_MAIN
 #include "../lib/catch.hpp"
-#include "../include/statemachine.h"
+#include "../includes/statemachine.h"
 
 TEST_CASE("Testing state machine") {
     FlightState flightState;

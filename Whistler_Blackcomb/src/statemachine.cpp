@@ -1,4 +1,4 @@
-#include "../include/statemachine.h"
+#include "../includes/statemachine.h"
 
 /* Constructor for FlightState class definition */
 FlightState::FlightState(){
