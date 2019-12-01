@@ -1,7 +1,8 @@
 {
     "code-runner.executorMap": {
+        //Used by code runner to compile and run whichever file user currently has selected
         //"cpp": "cd $dir && g++ -std=c++11 $fileName ../src/statemachine.cpp -o $fileNameWithoutExt && $dir$fileNameWithoutExt"
-        "cpp": "cd $dir && g++ -std=c++11 $fileName src/statemachine.cpp -o $fileNameWithoutExt && $dir$fileNameWithoutExt"
+        "cpp": "cd $dir && g++ -std=c++11 $fileName *.cpp -o $fileNameWithoutExt && $dir$fileNameWithoutExt"
     }
 }
 

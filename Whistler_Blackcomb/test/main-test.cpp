@@ -28,6 +28,10 @@ TEST_CASE("Testing state machine") {
     CHECK(flightState.getState() == WinterContingency);
 }
 
+// TEST_CASE("Testing voter module class") {
+
+// }
+
 TEST_CASE("Testing") {
     SUCCEED();
 }
