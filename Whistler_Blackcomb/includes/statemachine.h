@@ -19,6 +19,7 @@ class FlightState{
         FlightState();
         void setState(FlightStates new_state);
         FlightStates getState();
+        FlightStates desiredState;
     private:
         FlightStates currentState;
 };
