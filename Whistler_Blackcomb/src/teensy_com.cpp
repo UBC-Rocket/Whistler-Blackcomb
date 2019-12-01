@@ -72,7 +72,7 @@ B is status of the unit that is not being sent the message
 CD is the King unit
 EFGH is the state that the unit desires to be in
 */
-unsigned char generateMessage(FlightState desiredState, bool unitStatus, bool nonComUnitStatus, unsigned char king){
+unsigned char generateMessage(FlightState & flightState, bool unitStatus, bool nonComUnitStatus, unsigned char king){
     unsigned char message= 0x0;
 
     //Set Unit status bit to true
@@ -87,7 +87,7 @@ unsigned char generateMessage(FlightState desiredState, bool unitStatus, bool no
     message = message | king;
 
     //setting the state portion of the message
-    unsigned char state = (unsigned char) desiredState;
+    unsigned char state = (unsigned char) flightState.desiredState;
     //making sure that it does not go over the first 4 bits and mess up king
     state = state & 0x0F;
     message = message | state;
@@ -95,8 +95,8 @@ unsigned char generateMessage(FlightState desiredState, bool unitStatus, bool no
     return message;
 }
 
-void systemsUpdate(FlightState * currentState, FlightState * desiredState, bool * unit1Status,
-                    bool * unit2Status, bool * unit3Status, unsigned char * king, unsigned char * noComCount1, unsigned char * noComCount2){
+void systemsUpdate(FlightState & flightState, bool * unit1Status, bool * unit2Status, bool * unit3Status,
+                    unsigned char * king, unsigned char * noComCount1, unsigned char * noComCount2){
     unsigned char receivedMessage1 = 0;
     unsigned char receivedMessage2 = 0;
 
@@ -126,14 +126,28 @@ void systemsUpdate(FlightState * currentState, FlightState * desiredState, bool 
     bool msg2ReceivedUnit2Status = ((receivedMessage2 | 0x7F) == 0xFF);
     bool msg2ReceivedUnit1Status = ((receivedMessage2 | 0xBF) == 0xFF);
 
-    if(*currentState != receivedState1){
-
+    //if the two received states are the same the desired state is different then update the state
+    if(recievedState2 == receivedState1 && (unsigned char)flightState.desiredState != recievedState2){
+        flightState.desiredState = (FlightStates) recievedState2;
+        flightState.setState(flightState.desiredState);
     }
-    else if(*currentState != recievedState2){
-
+    //if one of the incoming states is the same as the desired state and the desired state is different from the current state then update
+    else if((unsigned char)flightState.desiredState == receivedState1 && flightState.desiredState != flightState.getState()){
+        flightState.setState(flightState.desiredState);
+    }
+    else if((unsigned char)flightState.desiredState == recievedState2 && flightState.desiredState != flightState.getState()){
+        flightState.setState(flightState.desiredState);
     }
 
+    //look for king from the bishop
+    #ifndef SYSTEM_3
+        if(king2 != *king){
 
+        }
+    #endif
+
+    #ifdef SYSTEM_1
+        unsigned char outgoingMessage1(flightState, *unit1Status, *unit3Status,)
 
 
 
