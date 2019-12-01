@@ -10,9 +10,12 @@ FlightState::FlightState(){
  * @param  FlightState new_state - State machine state to switch to.
  * @return void.
  */
-void FlightState::setState(FlightStates new_state){
+void FlightState::setState(FlightStates newState){
+    if(currentState == newState){
+        return; //do nothing, we are already in desired state
+    }
     if(currentState != WinterContingency) //don't want to switch out of WINTER_CONTINGENCY accidentally
-        currentState = new_state;
+        currentState = newState;
 }
 
 /* FlightStates getState(void){}
@@ -21,4 +24,16 @@ void FlightState::setState(FlightStates new_state){
  */
 FlightStates FlightState::getState(){
     return currentState;
+}
+
+/* void loop()
+ * @brief Loops through the state machine logic to control program flow
+ */
+void FlightState::loop(){
+    switch(currentState){
+        case(Fueling):
+            break;
+        case(Ignition):
+            break;
+    }
 }
