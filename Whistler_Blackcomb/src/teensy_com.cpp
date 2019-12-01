@@ -1,6 +1,6 @@
-#include "includes\teensy_com.h"
-#include "includes\options.h"
-#include "includes\statemachine.h"
+#include "..\includes\teensy_com.h"
+#include "..\includes\options.h"
+#include "..\includes\statemachine.h"
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
