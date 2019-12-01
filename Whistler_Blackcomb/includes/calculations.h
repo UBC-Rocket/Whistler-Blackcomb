@@ -19,6 +19,6 @@ void updateAverageLIS331(int16_t pastData[][15], int16_t newData[]);
 
 void updateAverageBNO080(float pastData[][15], float newData[]);
 
-void updateAverageMCP9808(float pastData[], float newData);
+void updateAverageMCP9808(float pastData[], float *newData);
 
 #endif

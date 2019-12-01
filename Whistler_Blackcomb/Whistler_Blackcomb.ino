@@ -1,4 +1,4 @@
-//make sure to select teensy 4.0 for boards
+    //make sure to select teensy 4.0 for boards
 
 /*Includes---------------------------------------------------------*/
 #include "includes\sensors.h"
@@ -45,22 +45,26 @@ void setup() {
 
 void loop() {
   pollSensors(&accel1, &accel2, &temp, &gps, accel1Data, accel2Data, tempData, lat, lon);
+  //Serial.println(accel1Data[0]);
+  //Serial.println(accel1Data[1]);
+  //Serial.println(accel1Data[2]);
+  Serial.println(tempData);
   updateAverageLIS331(accel1DataOld, accel1Data);
   updateAverageBNO080(accel2DataOld, accel2Data);
-  updateAverageMCP9808(tempDataOld, tempData);
-  Serial.println(accel1Data[0]);
-  Serial.println(accel1Data[1]);
-  Serial.println(accel1Data[2]);
-  Serial.println(accel2Data[0]);
-  Serial.println(accel2Data[1]);
-  Serial.println(accel2Data[2]);
+  updateAverageMCP9808(tempDataOld, &tempData);
+  //Serial.println(accel1Data[0]);
+  //Serial.println(accel1Data[1]);
+  //Serial.println(accel1Data[2]);
+  //Serial.println(accel2Data[0]);
+  /*Serial.println(accel2Data[1]);
+  Serial.println(accel2Data[2]);*/
   Serial.println(tempData);
   //Serial.println("Lat: " + lat + " Lon: " + lon);
   
   smartDelay(1000);
 
   if (millis() > 5000 && gps.charsProcessed() < 10)
-    Serial.println(F("No GPS data received: check wiring"));
+    //Serial.println(F("No GPS data received: check wiring"));
   delay(1000);
 }
 

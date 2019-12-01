@@ -5,11 +5,11 @@ Conatiains implementation of sensor initializations and data pulling
 */
 
 /*Includes-----------------------------------------------------------------*/
-#include "includes/sensors.h"
-#include "includes/Adafruit_MCP9808.h"
-#include "includes/SparkFun_BNO080_Arduino_Library.h"
-#include "includes/SparkFun_LIS331.h"
-#include "includes/TinyGPS++.h"
+#include "../includes/sensors.h"
+#include "../includes/Adafruit_MCP9808.h"
+#include "../includes/SparkFun_BNO080_Arduino_Library.h"
+#include "../includes/SparkFun_LIS331.h"
+#include "../includes/TinyGPS++.h"
 
 /*Constants----------------------------------------------------------------*/
 
@@ -35,7 +35,7 @@ void initBNO080(BNO080 *sensor, uint8_t address, uint8_t period){
 
 // x, y, z: variables to hold the data returned
 void readAxesBNO080(BNO080 *sensor, float &x, float &y, float &z){
-    Serial.println(sensor->dataAvailable());
+    sensor->dataAvailable();
     x = sensor->getAccelX();
     y = sensor->getAccelY();
     z = sensor->getAccelZ();

@@ -1,4 +1,4 @@
-#include "includes/SparkFun_LIS331.h"
+#include "../includes/SparkFun_LIS331.h"
 #include <SPI.h>
 #include <Wire.h>
 #include <stdint.h>

@@ -5,8 +5,8 @@ Contains implementation of calculations
 */
 
 /*Includes-----------------------------------------------------------------*/
-#include "includes/calculations.h"
-#include "includes/SparkFun_LIS331.h"
+#include "../includes/calculations.h"
+#include "../includes/SparkFun_LIS331.h"
 
 /*Constants----------------------------------------------------------------*/
 
@@ -38,14 +38,14 @@ void updateAverageBNO080(float pastData[][BNO080DataLength], float newData[]){
     }
 }
 
-void updateAverageMCP9808(float pastData[], float newData){
+void updateAverageMCP9808(float pastData[], float *newData){
     float sum=0;
     for(int i=MCP9808DataLength-1; i>0; i--){
         pastData[i]=pastData[i-1];
         sum+=pastData[i];
     }
-    pastData[0]=newData;
+    pastData[0]=*newData;
     sum+=pastData[0];
-    newData=sum/BNO080DataLength;
+    *newData=sum/BNO080DataLength;
 }
 
