@@ -1,30 +1,28 @@
-/*
-State Machine Header
-Function: Main state machine of the Whistler-Blackcomb rocket
-Implements state switching and calls state dependent functions
-*/
-
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
 
-/*Includes-----------------------------------------------------------*/
-
-
-/*Variables----------------------------------------------------------*/
-enum FlightState{
-    STANDBY,
-    FUELING,
-    IGNITION,
-    ASCENT,
-    FIRST_DESCENT,
-    SECOND_DESCENT,
-    FINAL_DESCENT,
-    LANDED
+enum FlightStates{
+    Fueling = 0,
+    Ignition = 1,
+    Ascent = 2,
+    Recovery1 = 3,
+    Recovery2 = 4,
+    Recovery3 = 5,
+    Recovery4 = 6,
+    FinalDescent = 7,
+    Landed = 8,
+    WinterContingency = 9
 };
 
-/*Functions----------------------------------------------------------*/
-void switchState(FlightState * currentState, FlightState newState);
-void stateMachine(FlightState * currentState);
-int test(int one, int two);
+class FlightState{
+    public:
+        FlightState();
+        void setState(FlightStates new_state);
+        FlightStates getState();
+    private:
+        FlightStates currentState;
+};
+
 
 #endif
+

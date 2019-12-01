@@ -1,0 +1,6 @@
+{
+    "code-runner.executorMap": {
+        "cpp": "cd $dir && g++ -std=c++11 $fileName ../src/statemachine.cpp -o $fileNameWithoutExt && $dir$fileNameWithoutExt"
+    }
+}
+
