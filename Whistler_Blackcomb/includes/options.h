@@ -7,4 +7,7 @@
 #define SYSTEM_2
 //#define SYSTEM_3
 
+
+//for software testing
+#define SOFTWARE_TESTING
 #endif

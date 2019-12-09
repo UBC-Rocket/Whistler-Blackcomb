@@ -13,10 +13,6 @@ int time = 5000;
 
 void setup() {
 
-  SerialUSB.begin(9600);
-  pinMode(13, OUTPUT);
-  setupSerialCom();
-  FlightState flightState;
 
 }
 

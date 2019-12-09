@@ -2,8 +2,10 @@
 #include "..\includes\options.h"
 #include "..\includes\statemachine.h"
 
+#ifndef SOFTWARE_TESTING
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#endif
 
 
 //Setting up on can bus 1, rx = 23, tx = 22
@@ -26,7 +28,7 @@
     #define Com_2 Serial4
 #endif
 
-
+#ifndef SOFTWARE_TESTING
 void setupSerialCom(){
     Com_1.begin(Com_Baud);
     Com_2.begin(Com_Baud);
@@ -38,31 +40,71 @@ void sendMessage(unsigned char message, unsigned char system_address){
     if(system_address == 2)
         Com_2.write(message);
 }
-//message 1 is lowest system teensy id that it is communicating with
-void readMessage(unsigned char * message1, unsigned char * message2, bool * com1Status, bool * com2Status, unsigned char * noComCount1, unsigned char * noComCount2){
+#endif
+
+Voter::Voter(unsigned char id, bool stat){
+    status = stat;
+    kingID = 1;
+    kingID1 = 1;
+    kingID2 = 1;
+    com1Status = true;
+    com2Status = true;
+    unitID = id;
+    if(unitID == 1)
+        king = true;
+    noComCount1 = 0;
+    noComCount2 = 0;
+    unitState1 = (FlightStates)0;
+    unitState2 = (FlightStates)0;
+}
+
+#ifndef SOFTWARE_TESTING
+void Voter::readMessages(){
     if(Com_1.available()){
-        *message1 = Com_1.read();
-        *com1Status = true;
-        *noComCount1 = 0;
+        unsigned char message1 = Com_1.read();
+        noComCount1 = 0;
+        parseMessage(1, message1);
     }
     else{
-        *noComCount1 = *noComCount1 + 1;
-        if(*noComCount1 > Count_Out){
-            *com1Status = false;
+        noComCount1 = noComCount1 + 1;
+        if(noComCount1 > Count_Out){
+            com1Status = false;
         }
     }
 
     if(Com_2.available()){
-        *message2 = Com_2.read();
-        *com2Status = false;
-        *noComCount2 = 0;
+        unsigned char message2 = Com_2.read();
+        noComCount2 = 0;
+        parseMessage(2, message2);
     }
     else{
-        *noComCount2 = *noComCount2 + 1;
-        //if the unit on com2 has not responded in a long enough time then set it to no longer effective
-        if(*noComCount2 > Count_Out){
-            *com2Status = false;
+        noComCount2 = noComCount2 + 1;
+        if(noComCount2 > Count_Out){
+            com2Status = false;
         }
+    }
+
+}
+#endif
+
+void Voter::parseMessage(unsigned char source, unsigned char message){
+    unsigned char state = message & 0x0F;
+    bool stat1 = (message | 0x7F) == 0xFF;
+    bool stat2 = (message | 0xBF) == 0xFF;
+    unsigned char king = message & 0x30;
+    king = king >> 4;
+
+    if(source == 1){
+        unitState1 = (FlightStates)state;
+        com1Status = stat1;
+        com2StatusAux = stat2;
+        kingID1 = king;
+    }
+    else if(source == 2){
+        unitState2 = (FlightStates)state;
+        com2Status = stat1;
+        com1StatusAux = stat2;
+        kingID2 = king;
     }
 }
 
@@ -72,86 +114,95 @@ B is status of the unit that is not being sent the message
 CD is the King unit
 EFGH is the state that the unit desires to be in
 */
-unsigned char generateMessage(FlightState & flightState, bool unitStatus, bool nonComUnitStatus, unsigned char king){
-    unsigned char message= 0x0;
+void Voter::generateMessages(unsigned char * message1, unsigned char * message2){
+    *message1 = 0x0;
+    *message2 = 0x0;
+    if(status){
+        *message1 = *message1 | 0x80;
+        *message2 = *message2 | 0x80;
+    }
+    if(com1Status)
+        *message2 = *message2 | 0x40;
+    if(com2Status)
+        *message1 = *message1 | 0x40;
 
-    //Set Unit status bit to true
-    if(unitStatus)
-        message = message | 0xA0;
-    //Set the unit status of the unit that is not being sent a message
-    if(nonComUnitStatus)
-        message = message | 0x40;
+    //make sure that the king is an acceptable value
+    if(kingID <=3){
+        unsigned char temp = kingID;
+        temp = temp << 4;
+        *message1 = *message1 | temp;
+        *message2 = *message2 | temp;
+    }
 
-    //set the king bits of the message
-    king = king << 4;
-    message = message | king;
-
-    //setting the state portion of the message
-    unsigned char state = (unsigned char) flightState.desiredState;
-    //making sure that it does not go over the first 4 bits and mess up king
-    state = state & 0x0F;
-    message = message | state;
-
-    return message;
+    *message1 = *message1 | (unsigned char)desiredState;
+    *message2 = *message2 | (unsigned char)desiredState;
 }
 
-void systemsUpdate(FlightState & flightState, bool * unit1Status, bool * unit2Status, bool * unit3Status,
-                    unsigned char * king, unsigned char * noComCount1, unsigned char * noComCount2){
-    unsigned char receivedMessage1 = 0;
-    unsigned char receivedMessage2 = 0;
 
-    //Check for messages and if there is no message on line update iteration where there is no communication
-    #ifdef SYSTEM_1
-        readMessage(&receivedMessage1, &receivedMessage2, unit2Status, unit3Status, noComCount1, noComCount2);
-    #endif
-    #ifdef SYSTEM_2
-        readMessage(&receivedMessage1, &receivedMessage2, unit1Status, unit3Status, noComCount1, noComCount2);
-    #endif
-    #ifdef SYSTEM_3
-        readMessage(&receivedMessage1, &receivedMessage2, unit1Status, unit2Status, noComCount1, noComCount2);
-    #endif
-
-    unsigned char receivedState1 = receivedMessage1 & 0x0F;
-    unsigned char recievedState2 = receivedMessage2 & 0x0F;
-
-    unsigned char king1 = receivedMessage1 & 0x30;
-    king1 = king1 >> 4;
-
-    unsigned char king2 = receivedMessage2 & 0x30;
-    king2 = king2 >> 4;
-
-    bool msg1ReceivedUnit1Status = ((receivedMessage1 | 0x7F) == 0xFF);
-    bool msg1ReceivedUnit2Status = ((receivedMessage1 | 0xBF) == 0xFF);
-
-    bool msg2ReceivedUnit2Status = ((receivedMessage2 | 0x7F) == 0xFF);
-    bool msg2ReceivedUnit1Status = ((receivedMessage2 | 0xBF) == 0xFF);
-
-    //if the two received states are the same the desired state is different then update the state
-    if(recievedState2 == receivedState1 && (unsigned char)flightState.desiredState != recievedState2){
-        flightState.desiredState = (FlightStates) recievedState2;
-        flightState.setState(flightState.desiredState);
-    }
-    //if one of the incoming states is the same as the desired state and the desired state is different from the current state then update
-    else if((unsigned char)flightState.desiredState == receivedState1 && flightState.desiredState != flightState.getState()){
-        flightState.setState(flightState.desiredState);
-    }
-    else if((unsigned char)flightState.desiredState == recievedState2 && flightState.desiredState != flightState.getState()){
-        flightState.setState(flightState.desiredState);
-    }
-
-    //look for king from the bishop
-    #ifndef SYSTEM_3
-        if(king2 != *king){
-
+//for status the first number is the unit the second number is the unit the message came from
+void Voter::assessKings(){
+    if(unitID == 1){
+        if((kingID1 == 1 && com1Status) | (kingID2 == 1 && com2Status)){
+            king = true;
         }
-    #endif
-
-    #ifdef SYSTEM_1
-        unsigned char outgoingMessage1(flightState, *unit1Status, *unit3Status,)
-
-
-
-
-
+        else{
+            king = false;
+        }
+    }
+    else if(unitID == 2){
+        if(com1Status){
+            kingID = 1;
+            king = false;
+        }
+        else if(kingID2 == 2 && com2Status){
+            kingID = 2;
+            king = true;
+        }
+        else{
+            king = false;
+            kingID = 2;
+        }
+    }
+    else if(unitID == 3){
+        if(com1Status)
+            kingID = 1;
+        else
+            kingID = 2;
+    }
 
 }
+
+//updates the system desired and current states
+void Voter::assessStates(){
+    //use noComCount to make sure that a message was received this iteration
+    if(unitState1 == unitState2 && unitState2 != getState() && com2Status && com1Status){
+        desiredState = unitState2;
+        setState(desiredState);
+    }
+    else if(desiredState == unitState1 && desiredState != getState() && com1Status){
+        setState(desiredState);
+    }
+    else if(desiredState == unitState2 && desiredState != getState() && com2Status){
+        setState(desiredState);
+    }
+}
+
+
+void Voter::systemUpdate(){
+    #ifndef SOFTWARE_TESTING
+        readMessages();
+    #endif
+    assessKings();
+    assessStates();
+
+    unsigned char send1 = 0x0;
+    unsigned char send2 = 0x0;
+
+    generateMessages(&send1, &send2);
+
+    #ifndef SOFTWARE_TESTING
+    sendMessage(send1, 1);
+    sendMessage(send2, 2);
+    #endif
+}
+
