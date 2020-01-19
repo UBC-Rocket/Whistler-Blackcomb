@@ -77,6 +77,34 @@ void bytesToFloat(const unsigned char *bytes, float *floatValue)
 	correctEndian(floatValue, sizeof(float));
 }
 
+int	readTCP(EthernetClient *socket, unsigned char *packet,	int	size){
+	// Serial.println("Recieved message: ");
+	int i = 0;
+	while(!socket->available()){
+		delay(1);
+		if(i>5000){
+			Serial.println("Connection timed out while waiting for response");
+			break;
+		}
+		else
+			i++;
+	}
+	i=0;
+	while(socket->available()){
+		packet[i]=socket->read();
+		//Serial.println(packet[i]);
+		i++;
+	}
+	if(i != size)
+	{
+		Serial.println("Unexpected read response size:");
+
+		if(i >= 0)
+			printPacket(packet, i);
+	}
+	return i;
+}
+
 int	readMultipleRegistersTCP(EthernetClient * socket, unsigned short address, unsigned char numRegisters, unsigned char *data)
 {
 	unsigned short transID = 0;
@@ -89,36 +117,59 @@ int	readMultipleRegistersTCP(EthernetClient * socket, unsigned short address, un
 
 	if(setupReadMultRegsCom(transID, 0, address, numRegisters, com, &resSize) != 0)
 		return -1;
-	//int a;
+
 	if(socket->write(com, READ_MULT_REGS_COM_SIZE) != READ_MULT_REGS_COM_SIZE){
-		//Serial.println(a);
 		return -2;
 	}
 
-	for(int i=0; i<READ_MULT_REGS_COM_SIZE;i++){
-		Serial.println(com[i]);
+	// Serial.println("Sent message: ");
+	// for(int i=0; i<READ_MULT_REGS_COM_SIZE;i++){
+	// 	Serial.println(com[i]);
+	// }
+	//delay(100);
+	if((size=readTCP(socket, res, resSize)) <= 0){
+		return -3;
 	}
-	
-    // Equivalent to readTCP
-	Serial.println(resSize);
-    for(int i = 0; i<resSize; i++){
-		res[i]=socket->read();
-        if(res[i]<=0){
-			// Serial.println(i);
-			// Serial.println(resSize);
-            return -3;
-		}
-        else
-        {
-            size++;
-        }
-        
-    }
 
-	// if(checkReadMultRegsRes(res, size, transID) != 0)
-	// 	return -4;
+	if(checkReadMultRegsRes(res, size, transID) != 0)
+		return -4;
 
 	memcpy(data, &res[READ_MULT_REGS_RESP_DATA_INDEX], numRegisters*BYTES_PER_REGISTER);
+	return 0;
+	
+}
+
+int writeMultipleRegistersTCP(EthernetClient * socket, unsigned short address, unsigned char numRegisters, const unsigned char *data)
+{
+	unsigned short transID = 0;
+	unsigned char com[WRITE_MULT_REGS_COM_DATA_INDEX + 255] = {0}; //max size
+	int comSize = 0;
+	unsigned char res[WRITE_MULT_REGS_RESP_SIZE] = {0};
+	int size = 0;
+
+	transID	= getNextTransactionID();
+
+	if(setupWriteMultRegsCom(transID, 0, address, numRegisters, data, com, &comSize) != 0)
+		return -1;
+
+	if(socket->write(com, comSize) != comSize)
+		return -1;
+
+	if((size = readTCP(socket, res, WRITE_MULT_REGS_RESP_SIZE)) <= 0)
+		return -1;
+
+	if(checkModbusResponse(res, size, transID, WRITE_MULT_REGS_COM_FUNCTION_CODE) != 0)
+		return -2;
+
+	return 0;
+}
+
+int readLabJackError(EthernetClient * socket, unsigned short *errorCode)
+{
+	unsigned char data[2];
+	if(readMultipleRegistersTCP(socket,	55000, 1, data) < 0)
+		return -1;
+	bytesToUint16(data, errorCode);
 	return 0;
 }
 
@@ -196,6 +247,26 @@ int checkModbusResponseNoID(const unsigned char *packet, int packetSize, unsigne
 		return -1;
 	}
 
+	return 0;
+}
+
+int	setupWriteMultRegsCom(unsigned short transID, unsigned char	unitID,	unsigned short address,	unsigned char numRegisters,	const unsigned char	*data, unsigned	char *comPacket, int *comPacketSize)
+{
+	int i = 0;
+	if(numRegisters > 127)
+	{
+		//BYTES_PER_REGISTER*numRegisters needs to be under 255
+		printf("setupWriteMultRegCom error: %d*numRegisters needs to be a value under 255.", BYTES_PER_REGISTER);
+		return -1;
+	}
+	comPacket[7] = 16;
+	uint16ToBytes(address, &comPacket[8]);
+	uint16ToBytes((unsigned	char)numRegisters, &comPacket[10]);
+	comPacket[12] = (unsigned char)((BYTES_PER_REGISTER*numRegisters)&0xFF);
+	for(i = 0; i < ((BYTES_PER_REGISTER*numRegisters)&0xFF); i++)
+		comPacket[WRITE_MULT_REGS_COM_DATA_INDEX + i] = data[i];
+	setModbusPacketHeader(comPacket, transID, 7 + BYTES_PER_REGISTER*numRegisters, unitID);
+	*comPacketSize = WRITE_MULT_REGS_COM_DATA_INDEX + BYTES_PER_REGISTER*numRegisters;
 	return 0;
 }
 

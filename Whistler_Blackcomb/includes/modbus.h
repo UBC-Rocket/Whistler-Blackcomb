@@ -30,6 +30,7 @@ void floatToBytes(float floatValue, unsigned char *bytes);
 //Converts 4 byte, big endian byte array to a float value.
 void bytesToFloat(const unsigned char *bytes, float *floatValue);
 
+int	readTCP(EthernetClient * socket, unsigned char *packet,	int	size);
 
 //Reads multiple registers over TCP using Modbus function 3 (Read Multiple
 //Registers). Returns -1 on general error, -2 on Modbus response error, and 0
@@ -54,7 +55,14 @@ int readMultipleRegistersTCP(EthernetClient * socket, unsigned short address,
 //      BYTES_PER_REGISTER*numRegisters in size.
 // int writeMultipleRegistersTCP(TCP_SOCKET socket, unsigned short address,
 //                               unsigned char numRegisters, const unsigned char *data);
+int writeMultipleRegistersTCP(EthernetClient * socket, unsigned short address,
+                              unsigned char numRegisters, const unsigned char *data);
 
+//Reads the error code (Address 55000) from the LabJack device.
+//Returns -1 on error and 0 on success.
+//socket: The T7's socket. The socket needs to be on port 502.
+//errorCode: The read LabJack error code from the device.
+int readLabJackError(EthernetClient * socket, unsigned short *errorCode);
 
 #define WRITE_MULT_REGS_COM_FUNCTION_CODE 16
 #define WRITE_MULT_REGS_COM_DATA_INDEX 13
@@ -107,6 +115,10 @@ int checkModbusResponseNoID(const unsigned char *packet, int packetSize,
 //                           unsigned short address, unsigned char numRegisters,
 //                           const unsigned char *data, unsigned char *comPacket,
 //                           int *comPacketSize);
+int setupWriteMultRegsCom(unsigned short transID, unsigned char unitID,
+                          unsigned short address, unsigned char numRegisters,
+                          const unsigned char *data, unsigned char *comPacket,
+                          int *comPacketSize);
 
 //Creates a Read Multiple Registers (read data) Modbus packet including its
 //header. Returns -1 on error, and 0 on success.
