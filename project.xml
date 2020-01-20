@@ -1,0 +1,18 @@
+<library>
+	<repositories>
+		<repository><path>./modm-repo/repo.lb</path></repository>
+	</repositories>
+	<options>
+		<option name=":target">stm32f722zet6</option>
+		<option name=":build:project.name">can_test</option>
+		<option name=":build:cmake:include_makefile">False</option>
+	</options>
+	<modules>
+		<module>:platform:core</module>
+		<module>:platform:clock</module>
+		<module>:platform:gpio</module>
+		<module>:platform:uart:3</module>
+		<module>:processing:protothread</module>
+		<module>:processing:resumable</module>
+	</modules>
+</library>
