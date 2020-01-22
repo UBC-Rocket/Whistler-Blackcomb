@@ -6,7 +6,6 @@ Ino file for the Whistler Blackcomb rocket
 
 /*Includes------------------------------------------------*/
 //#include "includes\statemachine.h"
-#include "includes\ArduinoLabjack.h"
 #include "includes\modbus.h"
 #include "includes\stream.h"
 
