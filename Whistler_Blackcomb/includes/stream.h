@@ -11,6 +11,7 @@
 #define STREAM_H_
 
 #include "./modbus.h"
+#include "./calibration.h"
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <SPI.h>
@@ -33,6 +34,15 @@
 
 //Bytes per sample in the stream response
 #define STREAM_BYTES_PER_SAMPLE 2
+
+// Stream Constants
+#define NUM_ADDRESSES 2
+
+int labjackSetup();
+
+int labjackRead(float * data);
+
+double getTimeSec();
 
 //Reads the analog input settings that are going to be streamed.
 //Returns -1 on error, 0 on success.
