@@ -75,7 +75,7 @@ int labjackSetup(){
 	delay(4000);
 
 	Ethernet.begin(mac, ip);
-	Serial.begin(9600);
+	//Serial.begin(9600);
 
 	if(!crSock.connect(IP_ADDR, CR_PORT) || !arSock.connect(IP_ADDR, SP_PORT))
 		Serial.println("Socket connection failed");
