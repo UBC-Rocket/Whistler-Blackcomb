@@ -3,26 +3,19 @@
   SparkFun sells these at its website: www.sparkfun.com
   Do you like this library? Help support SparkFun. Buy a board!
   https://www.sparkfun.com/products/14686
-
   Written by Nathan Seidle @ SparkFun Electronics, December 28th, 2017
-
   The BNO080 IMU is a powerful triple axis gyro/accel/magnetometer coupled with an ARM processor
   to maintain and complete all the complex calculations for various VR, inertial, step counting,
   and movement operations.
-
   This library handles the initialization of the BNO080 and is able to query the sensor
   for different readings.
-
   https://github.com/sparkfun/SparkFun_BNO080_Arduino_Library
-
   Development environment specifics:
   Arduino IDE 1.8.5
-
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
-
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */

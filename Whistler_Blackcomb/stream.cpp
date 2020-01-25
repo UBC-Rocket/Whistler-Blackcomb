@@ -54,7 +54,7 @@ unsigned int addrIndex = 0;
 float volts = 0.0f;
 unsigned char *rawData;
 float *voltData;
-int printStream = 0;
+int printStream = 1;
 int printStreamStart = 0;
 const double printStreamTimeSec = 1.0; //How often to print to the terminal in seconds.
 double scanTotal = 0;

@@ -28,7 +28,7 @@ void initLIS331(LIS331 *sensor, uint8_t address){
 // period: time between every data update
 void initBNO080(BNO080 *sensor, uint8_t address, uint8_t period){
     if(!sensor->begin(address)){
-        Serial.println("Connection Failed");
+        Serial.println("BNO080 Connection Failed");
     }
     sensor->enableAccelerometer(period);
 }
@@ -52,7 +52,7 @@ void readAxesBNO080(BNO080 *sensor, float &x, float &y, float &z){
 // Use Adafruit_MCP9808::readTempC() or Adafruit_MCP9808::readTempF() to read
 void initMCP9808(Adafruit_MCP9808 *sensor, uint8_t address, uint8_t res){
     if(!sensor->begin(address)){
-        Serial.println("Connection Failed");
+        Serial.println("MCP9808 Connection Failed");
     }
     sensor->setResolution(res);
 }
