@@ -46,30 +46,31 @@ void setup() {
   Serial.begin(9600);
   Wire.begin();
   delay(1000);
-  initLIS331(&accel1, 0x19);
-  initBNO080(&accel2, 0x4B, 50);
-  initMCP9808(&temp, 0x18, 3);
-  ss.begin(GPSBaud); 
+//  initLIS331(&accel1, 0x19);
+//  initBNO080(&accel2, 0x4B, 50);
+//  initMCP9808(&temp, 0x18, 3);
+//  ss.begin(GPSBaud); 
   labjackSetup();  
 }
 
 void loop() {
-//  labjackRead(labjackData); 
-  pollSensors(&accel1, &accel2, &temp, &gps, accel1Data, accel2Data, tempData, lat, lon);
-  Serial.println(tempData);
-  Serial.println(accel1Data[0]);
-  Serial.println(accel2Data[0]);
-  Serial.println(lat);
-  Serial.println(lon);
-  updateAverageLIS331(accel1DataOld, accel1Data);
-  updateAverageBNO080(accel2DataOld, accel2Data);
-  updateAverageMCP9808(tempDataOld, &tempData);
+  labjackRead(labjackData); 
+  
+//  pollSensors(&accel1, &accel2, &temp, &gps, accel1Data, accel2Data, tempData, lat, lon);
+//  Serial.println(tempData);
+//  Serial.println(accel1Data[0]);
+//  Serial.println(accel2Data[0]);
+//  Serial.println(lat);
+//  Serial.println(lon);
+//  updateAverageLIS331(accel1DataOld, accel1Data);
+//  updateAverageBNO080(accel2DataOld, accel2Data);
+//  updateAverageMCP9808(tempDataOld, &tempData);
   //Serial.println(tempData);
   
-  smartDelay(1000);
-
-  if (millis() > 5000 && gps.charsProcessed() < 10)
-    Serial.println(F("No GPS data received: check wiring"));
+//  smartDelay(1000);
+//
+//  if (millis() > 5000 && gps.charsProcessed() < 10)
+//    Serial.println(F("No GPS data received: check wiring"));
   //delay(1000);
 }
 

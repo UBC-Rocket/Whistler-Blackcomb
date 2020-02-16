@@ -13,7 +13,7 @@
 // Ports for command response and streaming respectively
 const int CR_PORT = 502;
 const int SP_PORT = 702;
-byte IP_ADDR[] = { 192, 168, 1, 214 }; // Labjack's IP address
+IPAddress IP_ADDR(192, 168, 1, 214 ); // Labjack's IP address
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 IPAddress ip(192, 168, 1, 178); // Our IP address. This is arbitrary
 
@@ -42,7 +42,7 @@ EthernetClient crSock;
 EthernetClient arSock;
 
 //Calibration constants
-DeviceCalibration devCal;
+DeviceCalibrationT4 devCal;
 
 //Stream read returns
 unsigned short backlog = 0;
@@ -72,13 +72,29 @@ int labjackSetup(){
 	delay(500);
 	digitalWrite(9, HIGH);   // end reset pulse
 	// When this delay is any lower, the ethernet client disconnects after 1-3 reads, after which it reconnects and works perfectly after that. With this delay that never happens, but not sure exactly why. 
-	delay(4000);
 
+	delay(5000);
+
+	//Ethernet.init(10);
 	Ethernet.begin(mac, ip);
 	//Serial.begin(9600);
 
-	if(!crSock.connect(IP_ADDR, CR_PORT) || !arSock.connect(IP_ADDR, SP_PORT))
-		Serial.println("Socket connection failed");
+	if (Ethernet.linkStatus() == LinkOFF) {
+		Serial.println("Ethernet cable is not connected.");
+	}else
+	{
+		Serial.println("Ethernet cable connected.");
+	}
+	
+
+	//Serial.println(Ethernet.hardwareStatus()==EthernetW5200);
+
+	Serial.println(crSock.connect(IP_ADDR, CR_PORT));
+
+	Serial.println(arSock.connect(IP_ADDR, SP_PORT));
+
+	// if(!crSock.connect(IP_ADDR, CR_PORT) || !arSock.connect(IP_ADDR, SP_PORT))
+	// 	Serial.println("Socket connection failed");
 	delay(100);
 	
 	byte readData[4]={0};
@@ -92,7 +108,7 @@ int labjackSetup(){
 		delay(1000);
 	}
 
-	getCalibration(&crSock, &devCal);
+	getNominalCalibrationT4(&devCal);
 
 	//Using a loop to add Modbus addresses for AIN0 - AIN(NUM_ADDRESSES-1) to the
 	//stream scan and configure the analog input settings.
@@ -175,10 +191,10 @@ int labjackRead(float * data){
 	backlog = backlog / (numAddresses*STREAM_BYTES_PER_SAMPLE); //Scan backlog
 	streamStatusCheck(Status, &gQuit);
 
-	for(int j=0;j<2;j++){
-		ainBinToVolts(&devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], gainList[addrIndex], &volts);
+	for(int j=0;j<NUM_ADDRESSES;j++){
+		ainBinToVoltsT4(&devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], scanListAddresses[j]/2, &volts);
 		if(printStream)
-			Serial.println(volts);
+			Serial.println(volts, 5);
 		voltData[j]=volts;
 	}
 
@@ -186,7 +202,7 @@ int labjackRead(float * data){
 
 	if(printStream){
 		Serial.println("Time spent:");
-		Serial.println(endTime-getTimeSec());
+		Serial.println(getTimeSec()-endTime);
 	}
 	endTime = getTimeSec();
 	if(gQuit){
