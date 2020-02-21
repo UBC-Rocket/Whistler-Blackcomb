@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>XBee.Universal</name>
+    </assembly>
+    <members>
+        <member name="T:XBee.Universal.XBeeController">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="M:XBee.Universal.XBeeController.#ctor(Windows.Devices.SerialCommunication.SerialDevice)">
+            <summary>
+            
+            </summary>
+            <param name="serialDevice"></param>
+        </member>
+        <member name="M:XBee.Universal.XBeeController.FindControllersAsync(System.UInt32)">
+            <summary>
+            Find all connected XBee controllers at the given baud rate.
+            </summary>
+            <param name="baudRate"></param>
+            <returns></returns>
+        </member>
+        <member name="T:XBee.Universal.SerialDeviceWrapper">
+            <summary>
+            Represents an abstraction layer for serial devices.
+            </summary>
+        </member>
+        <member name="M:XBee.Universal.SerialDeviceWrapper.#ctor(Windows.Devices.SerialCommunication.SerialDevice)">
+            <summary>
+            Instantiates a new SerialDeviceWrapper.
+            </summary>
+            <param name="serialDevice"></param>
+        </member>
+        <member name="M:XBee.Universal.SerialDeviceWrapper.Write(System.Byte[])">
+            <summary>
+            
+            </summary>
+            <param name="data"></param>
+        </member>
+        <member name="M:XBee.Universal.SerialDeviceWrapper.ReadAsync(System.UInt32,System.Threading.CancellationToken)">
+            <summary>
+            
+            </summary>
+            <param name="count"></param>
+            <param name="cancellationToken"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>
