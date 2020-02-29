@@ -1,9 +1,6 @@
 #include "./includes/modbus.h"
 #include "./includes/calibration.h"
 #include "./includes/stream.h"
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
 #include <Arduino.h>
 
 #define MAX_NUM_STREAM_ADDR 128
@@ -19,11 +16,11 @@ IPAddress ip(192, 168, 1, 178); // Our IP address. This is arbitrary
 
 static unsigned short gCurTransID = 0; //The current stream responses transaction ID
 
-float scanRate = 250.0f;
+float scanRate = 100.0f;
 unsigned int numAddresses = NUM_ADDRESSES;
-unsigned int samplesPerPacket = STREAM_MAX_SAMPLES_PER_PACKET_TCP;
+unsigned int samplesPerPacket = STREAM_MAX_SAMPLES_PER_PACKET_TCP-STREAM_MAX_SAMPLES_PER_PACKET_TCP % NUM_ADDRESSES;
 float settling = 10.0;
-unsigned int resolutionIndex = 0;
+unsigned int resolutionIndex = 8;
 unsigned int bufferSizeBytes = 0;
 unsigned int autoTarget = STREAM_TARGET_ETHERNET;
 unsigned int numScans = 0;
@@ -42,7 +39,7 @@ EthernetClient crSock;
 EthernetClient arSock;
 
 //Calibration constants
-DeviceCalibrationT4 devCal;
+DeviceCalibration devCal;
 
 //Stream read returns
 unsigned short backlog = 0;
@@ -60,6 +57,15 @@ const double printStreamTimeSec = 1.0; //How often to print to the terminal in s
 double scanTotal = 0;
 double numScansSkipped = 0;
 
+// Thermocouple settings
+unsigned int numTC = 1;
+unsigned int posTC[1] = {0};
+unsigned short negTC[1] = {1};
+unsigned int TCTypeList[1] = {22};
+
+unsigned char testData[2];
+float test;
+
 int labjackSetup(){
 
 	// Required because the WIZ820io requires a reset pulse and the Teensy doesn't have a reset pin (pin 9 is used instead)
@@ -73,21 +79,27 @@ int labjackSetup(){
 	digitalWrite(9, HIGH);   // end reset pulse
 	// When this delay is any lower, the ethernet client disconnects after 1-3 reads, after which it reconnects and works perfectly after that. With this delay that never happens, but not sure exactly why. 
 
-	delay(5000);
+	delay(4000);
 
 	//Ethernet.init(10);
 	Ethernet.begin(mac, ip);
 	//Serial.begin(9600);
 
-	if (Ethernet.linkStatus() == LinkOFF) {
-		Serial.println("Ethernet cable is not connected.");
-	}else
-	{
-		Serial.println("Ethernet cable connected.");
-	}
-	
 
-	//Serial.println(Ethernet.hardwareStatus()==EthernetW5200);
+	if(Ethernet.hardwareStatus() == EthernetW5200){
+		Serial.println("W5200");
+	}else {
+		Serial.println(Ethernet.hardwareStatus());
+	}
+
+	// if (Ethernet.linkStatus() == LinkON) {
+	// 	Serial.println("LinkON");
+	// }else if (Ethernet.linkStatus() == LinkOFF)
+	// {
+	// 	Serial.println("LinkOFF");
+	// }else{
+	// 	Serial.println("Other option");
+	// }
 
 	Serial.println(crSock.connect(IP_ADDR, CR_PORT));
 
@@ -108,17 +120,32 @@ int labjackSetup(){
 		delay(1000);
 	}
 
-	getNominalCalibrationT4(&devCal);
+	getCalibration(&crSock, &devCal);
+
+	// readMultipleRegistersTCP(&crSock, 7000, 2, testData);
+	// bytesToFloat(testData, &Test);
+	// Serial.println(Test);
+
+	//configTC(&crSock, numTC, posTC, negTC, TCTypeList);
+
+	// Temperature sensor reading - reserved 1st index of scanListAddresses
+	scanListAddresses[0]=28;
+	nChanList[0] = 199; //Negative channel is 199 (single ended)
+	rangeList[0] = 10; //0.0 = +/-10V, 10.0 = +/-10V, 1.0 = +/-1V, 0.1 = +/-0.1V, or 0.01 = +/-0.01V.
+	gainList[0] = 0; //gain index 0 = +/-10V
+
 
 	//Using a loop to add Modbus addresses for AIN0 - AIN(NUM_ADDRESSES-1) to the
 	//stream scan and configure the analog input settings.
-	for(int i = 0; i < numAddresses; i++)
+	for(int i = 1; i < numAddresses; i++)
 	{
-		scanListAddresses[i] = i*2; //AIN(i) (Modbus address i*2)
+		scanListAddresses[i] = (i-1)*2; //AIN(i) (Modbus address i*2)
 		nChanList[i] = 199; //Negative channel is 199 (single ended)
-		rangeList[i] = 10.0; //0.0 = +/-10V, 10.0 = +/-10V, 1.0 = +/-1V, 0.1 = +/-0.1V, or 0.01 = +/-0.01V.
-		gainList[i] = 0; //gain index 0 = +/-10V 
+		rangeList[i] = 0.01; //0.0 = +/-10V, 10.0 = +/-10V, 1.0 = +/-1V, 0.1 = +/-0.1V, or 0.01 = +/-0.01V.
+		gainList[i] = 3; //gain index 0 = +/-10V 
 	}
+
+	
 	Serial.println("Configuring analog inputs.\n");
 	if(ainConfig(&crSock, numAddresses, scanListAddresses, nChanList, rangeList) != 0)
 		Serial.println("ainConfig failed");
@@ -157,6 +184,7 @@ int labjackSetup(){
 		Serial.println("Stopping stream\n");
 		streamStop(&crSock);
 	}
+
 	startTime = getTimeSec();
 	lastPrint=startTime;
 	rawData=(unsigned char *)malloc(samplesPerPacket*STREAM_BYTES_PER_SAMPLE);
@@ -192,9 +220,9 @@ int labjackRead(float * data){
 	streamStatusCheck(Status, &gQuit);
 
 	for(int j=0;j<NUM_ADDRESSES;j++){
-		ainBinToVoltsT4(&devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], scanListAddresses[j]/2, &volts);
+		ainBinToVolts(&devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], gainList[j], &volts);
 		if(printStream)
-			Serial.println(volts, 5);
+			Serial.println(volts, 7);
 		voltData[j]=volts;
 	}
 
@@ -211,6 +239,43 @@ int labjackRead(float * data){
 		streamStop(&crSock);
 		for(;;);
 	}
+
+	// readMultipleRegistersTCP(&crSock, 0, 2, testData);
+	// bytesToFloat(testData, &test);
+	// Serial.println(test);
+
+	return 0;
+}
+
+int configTC(EthernetClient * sock, unsigned int numSensors, const unsigned int * posAINList, const unsigned short * negAINList, const unsigned int * typeList){
+
+	unsigned char data[2] = {0};
+	float test;
+
+	for(int i = 0; i < numSensors; i++){
+		uint16ToBytes(negAINList[i], data);
+		writeMultipleRegistersTCP(sock, 41000+posAINList[i], 1, data);
+
+		uint32ToBytes(typeList[i], data);
+		writeMultipleRegistersTCP(sock, 9000+2*posAINList[i], 2, data);
+		
+		uint32ToBytes(0, data);
+		writeMultipleRegistersTCP(sock, 9300+2*posAINList[i], 2, data);
+
+		uint32ToBytes(60052, data);
+		writeMultipleRegistersTCP(sock, 9600+2*posAINList[i], 2, data);
+
+		floatToBytes(1.0, data);
+		writeMultipleRegistersTCP(sock, 10200+2*posAINList[i], 2, data);
+
+		floatToBytes(0.0, data);
+		writeMultipleRegistersTCP(sock, 10500+2*posAINList[i], 2, data);
+	}
+
+	// readMultipleRegistersTCP(&crSock, 7000, 2, testData);
+	// bytesToFloat(testData, &test);
+	// Serial.println(test);
+
 	return 0;
 }
 

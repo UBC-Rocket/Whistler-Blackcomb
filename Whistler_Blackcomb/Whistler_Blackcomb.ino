@@ -36,11 +36,12 @@ double lon;
 
 int16_t accel1Data[3];
 float accel2Data[3];
-float tempData;
 
 int16_t accel1DataOld[3][LIS331DataLength];
 float accel2DataOld[3][15];
 float tempDataOld[15];
+
+float labjackTemp;
 
 void setup() { 
   Serial.begin(9600);
@@ -55,7 +56,8 @@ void setup() {
 
 void loop() {
   labjackRead(labjackData); 
-  
+  Serial.println(voltsToTempK(labjackData[1], labjackData[0] * (-92.6) + 194.45), 7);
+//  Serial.println(voltsToTempK(4.409, 24));
 //  pollSensors(&accel1, &accel2, &temp, &gps, accel1Data, accel2Data, tempData, lat, lon);
 //  Serial.println(tempData);
 //  Serial.println(accel1Data[0]);

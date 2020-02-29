@@ -36,11 +36,13 @@
 #define STREAM_BYTES_PER_SAMPLE 2
 
 // Stream Constants
-#define NUM_ADDRESSES 2
+#define NUM_ADDRESSES 3
 
 int labjackSetup();
 
 int labjackRead(float * data);
+
+int configTC(EthernetClient * sock, unsigned int numSensors, const unsigned int * posAINList, const unsigned short * negAINList, const unsigned int * typeList);
 
 double getTimeSec();
 
