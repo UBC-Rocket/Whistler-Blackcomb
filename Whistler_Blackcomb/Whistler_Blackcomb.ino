@@ -1,6 +1,5 @@
 #include "includes/radio.h"
 
-
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
@@ -9,7 +8,7 @@
 XBee radio = XBee();
 static ZBTxRequest txPacket = ZBTxRequest();
 static XBeeAddress64 gndAddr = XBeeAddress64(GND_STN_ADDR_MSB, GND_STN_ADDR_LSB);
-
+static struct Dataset dataset;
 void setup(){
     SerialRadio.begin(921600);
     Serial.begin(9600);
@@ -25,15 +24,5 @@ void setup(){
 }
 
 void loop(){
-    checkRadioRx(radio);
-    if(Serial.available() > 0){
-       unsigned char data[50];
-        int pos = 0;
-        while(Serial.available()>0){
-            data[pos] = Serial.read();
-            pos++;
-        }
-        sendRadioData(radio, &txPacket, data, pos);
-    }
 
 }
