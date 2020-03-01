@@ -42,7 +42,6 @@ double lon;
 
 int16_t accel1Data[3];
 float accel2Data[3];
-float tempData;
 
 int16_t accel1DataOld[3][LIS331DataLength];
 float accel2DataOld[3][15];
@@ -67,8 +66,9 @@ void setup() {
 void loop() {
     Serial.println("Reading labjack");
     labjackRead(labjackData);
+    Serial.println(voltsToTempK(labjackData[1], labjackData[0] * (-92.6) + 194.45), 7);
     dataset.dataset1[0] = labjackData[0];
-    dataset.dataset1[1] = labjackData[1];
+    dataset.dataset1[1] = voltsToTempK(labjackData[1], labjackData[0] * (-92.6) + 194.45);
     dataset.dataset1[2] = labjackData[2];
     Serial.println("Dataset numbers uwu: ");
     for(int i = 0; i<3; i++){
@@ -78,6 +78,7 @@ void loop() {
     Serial.println("");
 
     sendRadioDataset(radio, &txPacket, &dataset, 1);
+    checkRadioRx(radio);
 
 
 }
