@@ -30,6 +30,21 @@ void sendRadioDataset(XBee &radio, ZBTxRequest* txPacket, Dataset * data, uint8_
         }
         Serial.println(size);
     }
+    if(id == 2){
+        uint8_t size = sizeof(float)*DATASETSIZE + 1;
+        txPacket->setPayloadLength(size);
+        uint8_t payload[size];
+        memcpy(payload, 'a', 1);
+        memcpy(payload+1, data->dataset1, size);
+        txPacket->setPayload(payload);
+        radio.send(*txPacket);
+        Serial.print("Sent Packet: ");
+        for(int i = 0; i < size; i++){
+            Serial.print(payload[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println(size);
+    }
 
 
 }
