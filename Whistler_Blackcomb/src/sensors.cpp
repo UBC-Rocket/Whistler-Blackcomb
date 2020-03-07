@@ -66,12 +66,17 @@ void pollSensors(LIS331 *accel1, BNO080 *accel2, Adafruit_MCP9808 *temp, TinyGPS
     lon = gps->location.lng();
 }
 
+/*
+Converts type K thermocouple junction voltage to temperature
+volts: differential voltage reading through thermocouple
+temp: Temperature of reference junction
+For equations, see https://srdata.nist.gov/its90/download/type_k.tab
+Note: this site is useful for calculation testing: https://us.flukecal.com/Thermocouple-Temperature-Calculator
+*/
 float voltsToTempK(float volts, float temp){
     
     float vHot = volts*1000;
     float tHot = 0;
-
-    Serial.println(vHot, 7);
 
     float tCoefficients[11];
     if(temp >= 0){
@@ -111,8 +116,6 @@ float voltsToTempK(float volts, float temp){
         vHot+=tCoefficients[i]*pow(temp, i);
     }
 
-    // Serial.println(vHot, 7);
-
     float vCoefficients[10];
 
     if(temp >= 0 && temp <= 500){
@@ -141,6 +144,85 @@ float voltsToTempK(float volts, float temp){
 
     
     for(int i = 0; i < 10; i++){
+        tHot+=vCoefficients[i]*pow(vHot, i);
+    }
+
+    return tHot;
+
+}
+
+/*
+Converts type T thermocouple junction voltage to temperature
+volts: differential voltage reading through thermocouple
+temp: Temperature of reference junction
+For equations, see https://srdata.nist.gov/its90/download/type_T.tab
+*/
+float voltsToTempT(float volts, float temp){
+    
+    float vHot = volts*1000;
+    float tHot = 0;
+
+    float tCoefficients[15]={0};
+
+    if(temp >= 0){
+        tCoefficients[0] = 0.000000000000E+00;
+        tCoefficients[1] = 0.387481063640E-01;
+        tCoefficients[2] = 0.332922278800E-04;
+        tCoefficients[3] = 0.206182434040E-06;
+        tCoefficients[4] = -0.218822568460E-08;
+        tCoefficients[5] = 0.109968809280E-10;
+        tCoefficients[6] = -0.308157587720E-13;
+        tCoefficients[7] = 0.454791352900E-16;
+        tCoefficients[8] = -0.275129016730E-19;
+
+    }else{
+        tCoefficients[0] = 0;
+        tCoefficients[1] = 0.387481063640E-01;
+        tCoefficients[2] =  0.441944343470E-04;
+        tCoefficients[3] =  0.118443231050E-06;
+        tCoefficients[4] =  0.200329735540E-07;
+        tCoefficients[5] =  0.901380195590E-09;
+        tCoefficients[6] =  0.226511565930E-10;
+        tCoefficients[7] =  0.360711542050E-12;
+        tCoefficients[8] =  0.384939398830E-14;
+        tCoefficients[9] =  0.282135219250E-16;
+        tCoefficients[10] =  0.142515947790E-18;
+        tCoefficients[11] = 0.487686622860E-21;
+        tCoefficients[12] = 0.107955392700E-23;
+        tCoefficients[13] = 0.139450270620E-26;
+        tCoefficients[14] = 0.797951539270E-30;
+
+    }
+    for(int i = 0; i < 15; i++){
+        vHot+=tCoefficients[i]*pow(temp, i);
+    }
+
+    Serial.println(vHot, 7);
+
+    float vCoefficients[8];
+
+    if(temp >= 0){
+        vCoefficients[0] = 0;
+        vCoefficients[1] = 2.592800E+01;
+        vCoefficients[2] = -7.602961E-01;
+        vCoefficients[3] = 4.637791E-02;
+        vCoefficients[4] = -2.165394E-03;
+        vCoefficients[5] = 6.048144E-05;
+        vCoefficients[6] = -7.293422E-07;
+        vCoefficients[7] = 0;
+    }else if(temp<0){
+        vCoefficients[0] = 0;
+        vCoefficients[1] = 2.5949192E+01;
+        vCoefficients[2] = -2.1316967E-01;
+        vCoefficients[3] = 7.9018692E-01;
+        vCoefficients[4] = 4.2527777E-01;
+        vCoefficients[5] = 1.3304473E-01;
+        vCoefficients[6] = 2.0241446E-02;
+        vCoefficients[7] = 1.2668171E-03;
+    }
+
+    
+    for(int i = 0; i < 8; i++){
         tHot+=vCoefficients[i]*pow(vHot, i);
     }
 

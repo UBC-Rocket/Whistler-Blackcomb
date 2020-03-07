@@ -41,7 +41,7 @@ typedef struct
 	float ISource_200u;
 
 	float I_Bias;
-} DeviceCalibration;
+} DeviceCalibrationT7;
 
 typedef struct{
     struct {
@@ -69,12 +69,12 @@ typedef struct{
 
 //Gets the nominal calibration constants. No T7 communication is performed.
 //devCal: The returned nominal calibration constants.
-void getNominalCalibration(DeviceCalibration *devCal);
+void getNominalCalibrationT7(DeviceCalibrationT7 *devCal);
 
 //Gets the calibration constants from a T7. Returns -1 on error, 0 on success.
 //sock: The T7's socket.
 //devCal: The returned calibration constants from the T7.
-int getCalibration(EthernetClient * sock, DeviceCalibration *devCal);
+int getCalibrationT7(EthernetClient * sock, DeviceCalibrationT7 *devCal);
 
 //Converts AIN bytes to a calibrated voltage. Streaming only supports
 //high speed resolutions. Returns -1 on error, 0 on success.
@@ -85,7 +85,7 @@ int getCalibration(EthernetClient * sock, DeviceCalibration *devCal);
 //           Gain Indexes: 0 = +/-10 V, 1 = +/-1.0 V, 2 = +/-0.1 V,
 //                         3 = +/-0.01 V
 //volt: The returned calibrated voltage (V).
-int ainBinToVolts(const DeviceCalibration *devCal, const unsigned char *ainBytes,
+int ainBinToVoltsT7(const DeviceCalibrationT7 *devCal, const unsigned char *ainBytes,
                   unsigned int gainIndex, float *volt);
 
 

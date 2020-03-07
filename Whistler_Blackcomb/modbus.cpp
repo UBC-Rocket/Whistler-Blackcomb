@@ -82,6 +82,7 @@ int	readTCP(EthernetClient *socket, unsigned char *packet,	int	size){
 	int i = 0;
 	while(!socket->available()){
 		delay(1);
+		Serial.print("message delayed");
 		if(i>5000){
 			Serial.println("Connection timed out while waiting for response");
 			break;

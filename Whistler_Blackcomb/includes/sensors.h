@@ -26,4 +26,6 @@ void pollSensors(LIS331 *accel1, BNO080 *accel2, Adafruit_MCP9808 *temp, TinyGPS
 
 float voltsToTempK(float volts, float temp);
 
+float voltsToTempT(float volts, float temp);
+
 #endif

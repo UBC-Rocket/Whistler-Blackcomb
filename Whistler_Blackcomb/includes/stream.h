@@ -36,11 +36,47 @@
 #define STREAM_BYTES_PER_SAMPLE 2
 
 // Stream Constants
-#define NUM_ADDRESSES 3
+#define MAX_ADDRESSES 20
 
-int labjackSetup();
+struct LJConfig {
+    // Network details
+    int CR_PORT;
+    int SP_PORT;
+    IPAddress IP_ADDR;
 
-int labjackRead(float * data);
+    // Sockets for connection
+    EthernetClient crSock;
+    EthernetClient arSock;
+
+    // Type of device. 4 = T4 and 7 = T7
+    unsigned int type;
+
+    // Config Settings
+    float scanRate;
+    unsigned int numAddresses;
+    unsigned int samplesPerPacket;
+    float settling;
+    unsigned int resolutionIndex;
+    unsigned int bufferSizeBytes;
+    unsigned int autoTarget;
+    unsigned int numScans;
+
+    // Specific channel information
+    unsigned int scanListAddresses[MAX_ADDRESSES];
+    unsigned short nChanList[MAX_ADDRESSES];
+    float rangeList[MAX_ADDRESSES];
+    unsigned int gainList[MAX_ADDRESSES];
+
+    unsigned short gCurTransID;
+};
+
+int labjackSetup(struct LJConfig * config, void * devCal);
+
+int labjackRead(struct LJConfig * config, void * devCal, float * data);
+
+void configT7(struct LJConfig * config);
+
+void configT4(struct LJConfig * config);
 
 int configTC(EthernetClient * sock, unsigned int numSensors, const unsigned int * posAINList, const unsigned short * negAINList, const unsigned int * typeList);
 
@@ -128,7 +164,7 @@ int streamConfig(EthernetClient * sock, float scanRate,
 //Starts streaming on a T7. Call the streamConfig function first. Returns -1 on
 //error, 0 on success.
 //sock: The device's socket. The socket needs to be on port 502.
-int streamStart(EthernetClient * sock);
+int streamStart(EthernetClient * sock, unsigned short * transID);
 
 //Reads stream samples from an spontaneous stream packet from a T7. Samples
 //are in raw data form and will need to be converted to a voltage. Use the
@@ -137,6 +173,7 @@ int streamStart(EthernetClient * sock);
 //sock: The T7's socket. The socket needs to be on port 702.
 //samplesPerPacket: The number of samples in one stream packet. You configure
 //                  this in the streamConfig call.
+// transID: Current transaction ID
 //backlog: Number of bytes in the T7's stream buffer. Reads clear the buffer.
 //         A buffer overflow will occur when the backlog reaches the T7's
 //         stream buffer limit (bufferSizeIndex) configured in the streamConfig
@@ -146,7 +183,7 @@ int streamStart(EthernetClient * sock);
 //additionalInfo: Additional status information.
 //rawData: Byte array containing the raw sample data. The array needs to have
 //         samplesPerPacket * 2 elements (1 sample = 2 bytes).
-int spontaneousStreamRead(EthernetClient * sock, unsigned int samplesPerPacket, 
+int spontaneousStreamRead(EthernetClient * sock, unsigned int samplesPerPacket, unsigned short * transID, 
                           unsigned short *backlog, unsigned short *status, 
                           unsigned short *additionalInfo, unsigned char *rawData);
 

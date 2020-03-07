@@ -1,7 +1,7 @@
 #include "./includes/calibration.h"
 #include "./includes/modbus.h"
 
-void getNominalCalibration(DeviceCalibration *devCal)
+void getNominalCalibrationT7(DeviceCalibrationT7 *devCal)
 {
 	int i = 0;
 
@@ -39,7 +39,7 @@ void getNominalCalibration(DeviceCalibration *devCal)
 	devCal->I_Bias = 0;
 }
 
-int getCalibration(EthernetClient * sock, DeviceCalibration *devCal)
+int getCalibrationT7(EthernetClient * sock, DeviceCalibrationT7 *devCal)
 {
 	const unsigned int EFAdd_CalValues = 0x3C4000;
 	const int FLASH_PTR_ADDRESS	= 61810;
@@ -75,7 +75,7 @@ int getCalibration(EthernetClient * sock, DeviceCalibration *devCal)
 	return 0;
 }
 
-int ainBinToVolts(const DeviceCalibration *devCal, const unsigned char *ainBytes, unsigned int gainIndex, float *volts)
+int ainBinToVoltsT7(const DeviceCalibrationT7 *devCal, const unsigned char *ainBytes, unsigned int gainIndex, float *volts)
 {
 	unsigned short rawAIN = 0;
 	bytesToUint16(ainBytes, &rawAIN);
