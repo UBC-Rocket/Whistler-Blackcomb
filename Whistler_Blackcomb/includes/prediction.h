@@ -16,6 +16,10 @@ float calculateAngle(float angularVelocityNew, float angularVelocityOld, unsigne
 
 float degreeToRadians(float angle);
 
-float[][] dotProduct(float x[][], float y[][]);
+void addToDeltaTimeSet(unsigned long* average_set, unsigned long data);
+
+float** dotProduct(float x[][3], float y[][3]);
+
+void predictionCalculation(unsigned long *delta_time, unsigned long delta_time_set[], float* alt, float* x, float* y, float* z);
 
 #endif

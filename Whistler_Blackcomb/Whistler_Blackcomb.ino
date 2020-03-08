@@ -3,6 +3,8 @@
 /*Includes---------------------------------------------------------*/
 #include "includes\sensors.h"
 #include "includes\calculations.h"
+#include "includes\prediction.h"
+
 #include <SoftwareSerial.h>
 #include "includes\modbus.h"
 #include "includes\stream.h"
@@ -13,6 +15,7 @@
 #include <ArduinoRS485.h>
 #include <ArduinoModbus.h>
 
+/*
 struct LJConfig conT7;
 struct LJConfig conT4;
 
@@ -29,13 +32,16 @@ TinyGPSPlus gps;
 #define ss Serial1
 
 
-float labjackTemp;
+float labjackTemp; */
+BNO080 imu;
+
+static unsigned long delta_time_set[15];
 
 void setup()
 {
 	Serial.begin(9600);
 	Wire.begin();
-	
+	/*
 	// Ethernet Setup
 	// Required because the WIZ820io requires a reset pulse and the Teensy doesn't have a reset pin (pin 9 is used instead)
 	pinMode(9, OUTPUT);
@@ -58,13 +64,30 @@ void setup()
 	labjackSetup(&conT7, &devCalT7);
 	
 	// labjackSetup(&conT4);
+	*/
 }
 
 void loop()
 {
-	labjackRead(&conT7, &devCalT7, labjackData);
+	//labjackRead(&conT7, &devCalT7, labjackData);
 	// Serial.println(voltsToTempT(labjackData[1], labjackData[0] * (-92.6) + 194.45), 7);
 	//  Serial.println(voltsToTempT(-0.0005, -24));
+
+	static unsigned long old_time = 0; //ms
+    static unsigned long new_time = 0; //ms
+    unsigned long delta_time;
+	static float alt, x, y, z;
+
+	new_time = millis();
+    if ((new_time - old_time) >= 50) {
+        delta_time = new_time - old_time;
+        old_time = new_time;
+
+		readAxesBNO080(&imu, x, y, z);
+
+		predictionCalculation(&delta_time, delta_time_set, &alt, &x, &y, &z);
+
+	}
 }
 
 // This custom version of delay() ensures that the gps object
