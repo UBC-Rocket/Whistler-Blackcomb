@@ -27,44 +27,38 @@ float labjackData[STREAM_MAX_SAMPLES_PER_PACKET_TCP] = {0};
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; // Our mac address. This is arbitrary
 IPAddress ip(192, 168, 1, 178); // Our IP address. This is arbitrary
 
-// GPS
-TinyGPSPlus gps;
-#define ss Serial1
-
-
 float labjackTemp; */
-BNO080 imu;
 
 static unsigned long delta_time_set[15];
 
-void setup()
-{
-	Serial.begin(9600);
-	Wire.begin();
-	/*
-	// Ethernet Setup
-	// Required because the WIZ820io requires a reset pulse and the Teensy doesn't have a reset pin (pin 9 is used instead)
-	pinMode(9, OUTPUT);
-	digitalWrite(9, LOW);    // begin reset the WIZ820io
-	pinMode(10, OUTPUT);
-	digitalWrite(10, HIGH);  // de-select WIZ820io
-	// Note: delay's weren't in the original code here: https://www.pjrc.com/store/wiz820_sd_adaptor.html
-	// Delays were added because of reset pin specs here: http://wiznethome.cafe24.com/wp-content/uploads/wiznethome/Network%20Module/WIZ820io/Document/WIZ820io_User_Manual_V1.0.pdf
-	delay(500);
-	digitalWrite(9, HIGH);   // end reset pulse
-	// When this delay is any lower, the ethernet client disconnects after 1-3 reads, after which it reconnects and works perfectly after that. With this delay that never happens, but not sure exactly why. 
-	delay(4000);
+LIS331 accel1;
+BNO080 accel2;
+Adafruit_MCP9808 temp =Adafruit_MCP9808();
 
-	Ethernet.begin(mac, ip);
+// GPS 
+TinyGPSPlus gps;
+static const int RXPin = 4, TXPin = 3;
+static const uint32_t GPSBaud = 4800;
+float lat;
+float lon;
 
-	configT7(&conT7);
+SoftwareSerial ss(RXPin, TXPin); // The serial connection to the GPS device
 
-	configT4(&conT4);
+//BNO080 myBNO080;
+int16_t accel1Data[3];
+float accel2Data[3];
+float tempData;
 
-	labjackSetup(&conT7, &devCalT7);
-	
-	// labjackSetup(&conT4);
-	*/
+
+void setup() { 
+  Serial.begin(9600);
+  Wire.begin();
+  delay(500);
+  initLIS331(&accel1, 0x19);
+  initBNO080(&accel2, 0x4B, 50);
+  initMCP9808(&temp, 0x18, 3);
+  ss.begin(GPSBaud); 
+  
 }
 
 void loop()
