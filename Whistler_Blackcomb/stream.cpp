@@ -7,7 +7,6 @@
 #define MAX_NUM_STREAM_ADDR_PER_PKT 63  //When using Modbus Write/Read Multiple Registers 
 
 int labjackSetup(LJConfig * config, void * devCal, int streamReset){
-	
 	config->crSock.setConnectionTimeout(SOCK_TIMEOUT);
 	config->arSock.setConnectionTimeout(SOCK_TIMEOUT);
 
@@ -197,7 +196,7 @@ void configT7(LJConfig * config){
 	config->resolutionIndex = 8;
 	config->autoTarget = STREAM_TARGET_ETHERNET;
 	config->numScans = 0;
-	config->printStream = 0;
+	config->printStream = 1;
 
 	
 	// Temperature sensor reading - reserved 1st index of scanListAddresses
@@ -238,7 +237,7 @@ void configT4(LJConfig * config){
 	config->resolutionIndex = 5;
 	config->autoTarget = STREAM_TARGET_ETHERNET;
 	config->numScans = 0;
-	config->printStream = 0;
+	config->printStream = 1;
 
 	// Temp test sensor
 	config->scanListAddresses[0]=0;

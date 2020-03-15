@@ -69,9 +69,9 @@ void setup()
 
 	labjackSetup(&conT7, &devCalT7, 0);
 	labjackSetup(&conT4, &devCalT4, 0);
-	for(int i = 0; i < conT7.scanRate; i++){
-		averageT7AIN0Data[i]=0;
-	}
+	// for(int i = 0; i < conT7.scanRate; i++){
+	// 	averageT7AIN0Data[i]=0;
+	// }
 }
 
 void loop()
