@@ -13,13 +13,20 @@
 #include <ArduinoRS485.h>
 #include <ArduinoModbus.h>
 
-struct LJConfig conT7;
-struct LJConfig conT4;
+LJConfig conT7;
+LJConfig conT4;
 
 DeviceCalibrationT7 devCalT7;
 DeviceCalibrationT4 devCalT4;
 
-float labjackData[STREAM_MAX_SAMPLES_PER_PACKET_TCP] = {0};
+float * T7Data;
+float * T4Data;
+
+float * averageT7AIN0Data;
+float * averageT4AIN0Data;
+
+float averageT7AIN0;
+float averageT4AIN0;
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; // Our mac address. This is arbitrary
 IPAddress ip(192, 168, 1, 178); // Our IP address. This is arbitrary
@@ -30,10 +37,11 @@ TinyGPSPlus gps;
 
 
 float labjackTemp;
+float tLastPrint = 0;
 
 void setup()
 {
-	Serial.begin(9600);
+	Serial.begin(115200);
 	Wire.begin();
 	
 	// Ethernet Setup
@@ -52,19 +60,41 @@ void setup()
 	Ethernet.begin(mac, ip);
 
 	configT7(&conT7);
+	T7Data = malloc(conT7.samplesPerPacket*sizeof(float));
+	// averageT7AIN0Data = malloc(sizeof(float)*conT7.scanRate);
 
 	configT4(&conT4);
+	T4Data = malloc(conT4.samplesPerPacket*sizeof(float));
+	// averageT4AIN0Data = malloc(sizeof(float)*conT4.scanRate);
 
-	labjackSetup(&conT7, &devCalT7);
-	
-	// labjackSetup(&conT4);
+	labjackSetup(&conT7, &devCalT7, 0);
+	labjackSetup(&conT4, &devCalT4, 0);
+	for(int i = 0; i < conT7.scanRate; i++){
+		averageT7AIN0Data[i]=0;
+	}
 }
 
 void loop()
 {
-	labjackRead(&conT7, &devCalT7, labjackData);
+	// delay(2000);
+	while(labjackRead(&conT7, &devCalT7, T7Data)){
+		// averageT7AIN0-=averageT7AIN0Data[(int)conT7.scanRate]/conT7.scanRate;
+		// averageT7AIN0+=T7Data[1]/conT7.scanRate;
+		// for(int i = conT7.scanRate-1; i >= 0; i--){
+		// 	averageT7AIN0Data[i+1]=averageT7AIN0Data[i];
+		// }
+		// averageT7AIN0Data[0]=T7Data[1];
+		// Serial.println(T7Data[1]);
+	}
+	while(labjackRead(&conT4, &devCalT4, T4Data)){
+
+	}
 	// Serial.println(voltsToTempT(labjackData[1], labjackData[0] * (-92.6) + 194.45), 7);
 	//  Serial.println(voltsToTempT(-0.0005, -24));
+	// if(getTimeSec()-tLastPrint>1){
+	// 	Serial.println(averageT7AIN0);
+	// 	tLastPrint=getTimeSec();
+	// }
 }
 
 // This custom version of delay() ensures that the gps object

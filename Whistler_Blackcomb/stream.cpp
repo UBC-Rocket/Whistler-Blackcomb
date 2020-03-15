@@ -6,11 +6,25 @@
 #define MAX_NUM_STREAM_ADDR 128
 #define MAX_NUM_STREAM_ADDR_PER_PKT 63  //When using Modbus Write/Read Multiple Registers 
 
-int labjackSetup(struct LJConfig * config, void * devCal){
+int labjackSetup(LJConfig * config, void * devCal, int streamReset){
+	
+	config->crSock.setConnectionTimeout(SOCK_TIMEOUT);
+	config->arSock.setConnectionTimeout(SOCK_TIMEOUT);
 
-	Serial.println((&config->crSock)->connect(config->IP_ADDR, config->CR_PORT));
+	int count=0;
+	while(count < (streamReset ? 1 : CONNECT_TIMEOUT/SOCK_TIMEOUT) && !(&config->crSock)->connect(config->IP_ADDR, config->CR_PORT)){
+		count++;
+	}
 
-	Serial.println((&config->arSock)->connect(config->IP_ADDR, config->SP_PORT));
+	if((&config->crSock)->connected()){
+		Serial.print("Command response socket connected. Number of failures before success: ");
+		Serial.println(count);
+	}
+	else{
+		if(!streamReset)
+			Serial.println("Command response socket failed to connect!");
+		return -1;
+	}
 	
 	// Check if the stream is still running from a previous run, if so reset it and flush the buffer of reads
 	byte readData[4]={0};
@@ -24,12 +38,29 @@ int labjackSetup(struct LJConfig * config, void * devCal){
 		delay(1000);
 	}
 
+	count=0;
+	while(count < (streamReset ? 1 : CONNECT_TIMEOUT/SOCK_TIMEOUT) && !(&config->arSock)->connect(config->IP_ADDR, config->SP_PORT)){
+		count++;
+	}
+
+	if((&config->arSock)->connected()){
+		Serial.print("Stream socket connected. Number of failures before success: ");
+		Serial.println(count);
+	}
+	else{
+		if(!streamReset)
+			Serial.println("Stream socket failed to connect!");
+		return -2;
+	}
+
+	config->gCurTransID=0;
+
 	// Get calibration from flash memory of Labjack. 
 	// Note on void pointer: since this function should work on both a T7 and a T4, either device calibration should be expected. Therefore a void pointer of either calibration type is passed in, and it is casted to the correct type depending on what the config struct says it should be. 
 	if(config->type == 7){
 		getCalibrationT7((&config->crSock), (DeviceCalibrationT7 *)devCal);
 	}else{
-		getNominalCalibrationT4((DeviceCalibrationT4 *)devCal);
+		getCalibrationT4((&config->crSock), (DeviceCalibrationT4 *)devCal);
 	}
 	
 	Serial.println("Configuring analog inputs.\n");
@@ -64,90 +95,93 @@ int labjackSetup(struct LJConfig * config, void * devCal){
 		streamStop((&config->crSock));
 	}
 
+	config->lastReadTime = getTimeSec();
+
 	return 0;
 }
 
-int labjackRead(struct LJConfig * config, void * devCal, float * data){
-	
-	double startTime=getTimeSec();
+int labjackRead(LJConfig * config, void * devCal, float * data){
 
-	int gQuit=0;
 
-	//Stream read returns
-	unsigned short backlog = 0;
-	unsigned short Status = 0;
-	unsigned short additionalInfo = 0;
+	if((&config->arSock)->available()){
 
-	//Stream read loop variables
-	float volts = 0.0f;
-	int printStream = 1;
+		int gQuit=0;
 
-	unsigned char rawData[config->samplesPerPacket*STREAM_BYTES_PER_SAMPLE];
-	float voltData[config->samplesPerPacket*STREAM_BYTES_PER_SAMPLE];
+		//Stream read returns
+		unsigned short backlog = 0;
+		unsigned short Status = 0;
+		unsigned short additionalInfo = 0;
 
-	// Checks to see if either socket has been disconnected, if so try and reconnect (doesn't currently really work)
-	if(!(&config->crSock)->connected()){
-		(&config->crSock)->connect(config->IP_ADDR, config->CR_PORT);
-		Serial.println("crSock Disconnected!");
-		while((&config->crSock)->available()){
-			(&config->crSock)->read();
+		//Stream read loop variables
+		float volts = 0.0f;
+
+		unsigned char * rawData = (unsigned char *)malloc(config->samplesPerPacket*STREAM_BYTES_PER_SAMPLE);
+		float * voltData = (float *)malloc(config->samplesPerPacket*sizeof(float));
+
+		// Waits until a read is available at which time returned data will be written to rawData
+		// while(!(&config->arSock)->available())
+		// 	delay(1);
+		if(spontaneousStreamRead((&config->arSock), config->samplesPerPacket, &config->gCurTransID, &backlog, &Status, &additionalInfo, rawData) != 0)
+		{
+			Serial.println("Stream read failed");
+		}
+		backlog = backlog / (config->numAddresses*STREAM_BYTES_PER_SAMPLE); //Scan backlog
+		streamStatusCheck(Status, &gQuit);
+
+		if(config->printStream){
+			Serial.print("T");
+			Serial.print(config->type);
+			Serial.println(" Data: ");
+		}
+		// Loops through the returned data and converts each measurement to volts
+		for(unsigned int j=0;j<config->samplesPerPacket;j++){
+			if(config->type == 7){
+				ainBinToVoltsT7((DeviceCalibrationT7 *)devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], config->gainList[j % config->numAddresses], &volts);
+			}else{
+				ainBinToVoltsT4((DeviceCalibrationT4 *)devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], config->gainList[j % config->numAddresses], &volts);
 			}
-	}
-	if(!(&config->arSock)->connected()){
-		(&config->arSock)->connect(config->IP_ADDR, config->SP_PORT);
-		Serial.println("arSock Disconnected!");
-		while((&config->arSock)->available()){
-		(&config->arSock)->read();
+			if(config->printStream && j < config->numAddresses){
+				Serial.print("AIN");
+				Serial.print(config->scanListAddresses[j]/2);
+				Serial.print(": ");
+				Serial.print(volts, 7);
+				Serial.print("		");
+			}
+			voltData[j]=volts;
 		}
-	}
-	
-	backlog = 0;
-	Status = 0;
-	additionalInfo = 0;
 
-	// Waits until a read is available at which time returned data will be written to rawData
-	while(!(&config->arSock)->available())
-		delay(1);
-	if(spontaneousStreamRead((&config->arSock), config->samplesPerPacket, &config->gCurTransID, &backlog, &Status, &additionalInfo, rawData) != 0)
-	{
-		Serial.println("Stream read failed");
-	}
-	backlog = backlog / (config->numAddresses*STREAM_BYTES_PER_SAMPLE); //Scan backlog
-	streamStatusCheck(Status, &gQuit);
+		memcpy(data, &voltData[0], config->samplesPerPacket*sizeof(float));
 
-	// Loops through the returned data and converts each measurement to volts
-	for(unsigned int j=0;j<config->numAddresses;j++){
-		if(config->type == 7){
-			ainBinToVoltsT7((DeviceCalibrationT7 *)devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], config->gainList[j], &volts);
-		}else{
-			ainBinToVoltsT4((DeviceCalibrationT4 *)devCal, &rawData[j*STREAM_BYTES_PER_SAMPLE], config->gainList[j], &volts);
+		if(config->printStream){
+			Serial.print("Time spent:");
+			Serial.println(getTimeSec()-config->lastReadTime);
 		}
-		if(printStream)
-			Serial.println(volts, 7);
-		voltData[j]=volts;
+
+		// free(voltData);
+
+		config->lastReadTime = getTimeSec();
+
+		if(gQuit){
+			free(rawData);
+			Serial.println("Stopping Stream...");
+			streamStop((&config->crSock));
+			for(;;);
+		}
+
+		// readMultipleRegistersTCP(crSock, 0, 2, testData);
+		// bytesToFloat(testData, &test);
+		// Serial.println(test);
+
+		return 1;
+	}else{
+		if(getTimeSec()-config->lastReadTime>1/config->scanRate/config->numAddresses*config->samplesPerPacket*2){
+			labjackSetup(config, devCal, 1);
+		}
+		return 0;
 	}
-
-	memcpy(data, &voltData[0], config->samplesPerPacket*STREAM_BYTES_PER_SAMPLE);
-
-	if(printStream){
-		Serial.println("Time spent:");
-		Serial.println(getTimeSec()-startTime);
-	}
-	if(gQuit){
-		free(rawData);
-		Serial.println("Stopping Stream...");
-		streamStop((&config->crSock));
-		for(;;);
-	}
-
-	// readMultipleRegistersTCP(crSock, 0, 2, testData);
-	// bytesToFloat(testData, &test);
-	// Serial.println(test);
-
-	return 0;
 }
 
-void configT7(struct LJConfig * config){
+void configT7(LJConfig * config){
 	config->CR_PORT = 502;
 	config->SP_PORT = 702;
 	config->IP_ADDR = IPAddress(192, 168, 1, 214);
@@ -156,12 +190,14 @@ void configT7(struct LJConfig * config){
 
 	config->scanRate = 100.0f;
 	config->numAddresses = 3;
-	// This is to ensure that the number of samples in a packet is divisible by the number of addresses, so the "first" piece of data is always consistently first in the array
-	config->samplesPerPacket = STREAM_MAX_SAMPLES_PER_PACKET_TCP - STREAM_MAX_SAMPLES_PER_PACKET_TCP % config->numAddresses;
+	// This is to ensure that the number of samples in a packet is divisible by the number of addresses, so the "first" piece of data is always consistently first in the array. Use this for low latency, high thoroughput streaming. 
+	// config->samplesPerPacket = STREAM_MAX_SAMPLES_PER_PACKET_TCP - STREAM_MAX_SAMPLES_PER_PACKET_TCP % config->numAddresses;
+	config->samplesPerPacket = config->numAddresses;
 	config->settling = 10.0;
 	config->resolutionIndex = 8;
 	config->autoTarget = STREAM_TARGET_ETHERNET;
 	config->numScans = 0;
+	config->printStream = 0;
 
 	
 	// Temperature sensor reading - reserved 1st index of scanListAddresses
@@ -178,27 +214,31 @@ void configT7(struct LJConfig * config){
 	{
 		config->scanListAddresses[i] = (i-1)*2; //AIN(i) (Modbus address i*2)
 		config->nChanList[i] = 199; //Negative channel is 199 (single ended)
-		config->rangeList[i] = 0.01; //0.0 = +/-10V, 10.0 = +/-10V, 1.0 = +/-1V, 0.1 = +/-0.1V, or 0.01 = +/-0.01V.
-		config->gainList[i] = 3; //gain index 0 = +/-10V 
+		config->rangeList[i] = 10; //0.0 = +/-10V, 10.0 = +/-10V, 1.0 = +/-1V, 0.1 = +/-0.1V, or 0.01 = +/-0.01V.
+		config->gainList[i] = 0; //gain index 0 = +/-10V 
 	}
 	
+	config->gCurTransID = 0;
+
 }
 
-void configT4(struct LJConfig * config){
+void configT4(LJConfig * config){
 	config->CR_PORT = 502;
 	config->SP_PORT = 702;
 	config->IP_ADDR = IPAddress(192, 168, 1, 215);
 
 	config->type = 4;
 
-	config->scanRate = 1000.0f;
+	config->scanRate = 300.0f;
 	config->numAddresses = 1;
-	// This is to ensure that the number of samples in a packet is divisible by the number of addresses, so the "first" piece of data is always consistently first in the array
-	config->samplesPerPacket = STREAM_MAX_SAMPLES_PER_PACKET_TCP - STREAM_MAX_SAMPLES_PER_PACKET_TCP % config->numAddresses;
+	// This is to ensure that the number of samples in a packet is divisible by the number of addresses, so the "first" piece of data is always consistently first in the array. Use this for low latency, high thoroughput streaming. 
+	// config->samplesPerPacket = STREAM_MAX_SAMPLES_PER_PACKET_TCP - STREAM_MAX_SAMPLES_PER_PACKET_TCP % config->numAddresses;
+	config->samplesPerPacket = config->numAddresses;
 	config->settling = 10.0;
 	config->resolutionIndex = 5;
 	config->autoTarget = STREAM_TARGET_ETHERNET;
 	config->numScans = 0;
+	config->printStream = 0;
 
 	// Temp test sensor
 	config->scanListAddresses[0]=0;
@@ -206,6 +246,8 @@ void configT4(struct LJConfig * config){
 	config->rangeList[0] = 10; //0.0 = +/-10V, 10.0 = +/-10V, 1.0 = +/-1V, 0.1 = +/-0.1V, or 0.01 = +/-0.01V.
 	config->gainList[0] = 0; //gain index 0 = +/-10V
 	
+	config->gCurTransID = 0;
+
 }
 
 int configTC(EthernetClient * sock, unsigned int numSensors, const unsigned int * posAINList, const unsigned short * negAINList, const unsigned int * typeList){
@@ -511,6 +553,7 @@ int spontaneousStreamRead(EthernetClient * sock, unsigned int samplesPerPac, uns
 	res = (unsigned char *)malloc(resSize); //Could also hardcode for max. size 1040
 
 	size = readTCP(sock, res, resSize);
+
 	if(size <= 0)
 	{
 		ret = -1;

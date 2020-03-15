@@ -82,8 +82,8 @@ int	readTCP(EthernetClient *socket, unsigned char *packet,	int	size){
 	int i = 0;
 	while(!socket->available()){
 		delay(1);
-		Serial.print("message delayed");
-		if(i>5000){
+		// Serial.print("message delayed");
+		if(i>MAX_TIMEOUT_MS){
 			Serial.println("Connection timed out while waiting for response");
 			break;
 		}
@@ -91,7 +91,7 @@ int	readTCP(EthernetClient *socket, unsigned char *packet,	int	size){
 			i++;
 	}
 	i=0;
-	while(socket->available()){
+	while(socket->available() && i<size){
 		packet[i]=socket->read();
 		//Serial.println(packet[i]);
 		i++;

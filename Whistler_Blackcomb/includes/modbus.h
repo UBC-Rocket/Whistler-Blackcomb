@@ -2,6 +2,7 @@
 #define MODBUS_H_
 
 #define BYTES_PER_REGISTER 2
+#define MAX_TIMEOUT_MS 50
 
 #include <Arduino.h>
 #include <Ethernet.h>

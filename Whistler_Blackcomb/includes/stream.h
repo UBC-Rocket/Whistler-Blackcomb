@@ -38,7 +38,11 @@
 // Stream Constants
 #define MAX_ADDRESSES 20
 
-struct LJConfig {
+// Ethernet Settings
+#define SOCK_TIMEOUT 10
+#define CONNECT_TIMEOUT 2000
+
+typedef struct {
     // Network details
     int CR_PORT;
     int SP_PORT;
@@ -60,6 +64,7 @@ struct LJConfig {
     unsigned int bufferSizeBytes;
     unsigned int autoTarget;
     unsigned int numScans;
+    unsigned int printStream;
 
     // Specific channel information
     unsigned int scanListAddresses[MAX_ADDRESSES];
@@ -67,19 +72,34 @@ struct LJConfig {
     float rangeList[MAX_ADDRESSES];
     unsigned int gainList[MAX_ADDRESSES];
 
+    // Read time stream variables
     unsigned short gCurTransID;
-};
+    double lastReadTime;
 
-int labjackSetup(struct LJConfig * config, void * devCal);
+} LJConfig;
 
-int labjackRead(struct LJConfig * config, void * devCal, float * data);
+// Sets the Labjack up for streaming
+// config: LJConfig struct containing config information to read/write from (see configT4/7)
+// devCal: device calibration struct to use. This is a void pointer because either a T7 or T4 devCal struct can be passed in, 
+// as long as it's type matches that specified in LJConfig.type
+int labjackSetup(LJConfig * config, void * devCal, int streamReset);
 
-void configT7(struct LJConfig * config);
+// Reads Labjack stream, if available. Returns 1 if stream was available and read and 0 if the packet isn't ready yet
+// config: LJConfig struct containing configuration information
+// devCal: device calibration to convert from output to volts. See labjackSetup. 
+// data: array of data to return to. This should have length of the number of samples per packet
+int labjackRead(LJConfig * config, void * devCal, float * data);
 
-void configT4(struct LJConfig * config);
+// Configures T7 with desired options. To change any desired settings (e.g. channels to be read), change the implementation of this function
+// config: LJConfig struct to write to
+void configT7(LJConfig * config);
+
+// Exact same as configT7 except for the T4 (see above)
+void configT4(LJConfig * config);
 
 int configTC(EthernetClient * sock, unsigned int numSensors, const unsigned int * posAINList, const unsigned short * negAINList, const unsigned int * typeList);
 
+// Returns time in milliseconds
 double getTimeSec();
 
 //Reads the analog input settings that are going to be streamed.

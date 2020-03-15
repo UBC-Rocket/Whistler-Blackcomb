@@ -124,7 +124,7 @@ int getCalibrationT4(EthernetClient * sock, DeviceCalibrationT4 *devCal)
 	
 	// 3 frames	of 13 values, one frame	of 2 values
 	const int FLASH_READ_ADDRESS = 61812;
-	const int FLASH_READ_NUM_REGS[4] = {26, 26, 26, 4};
+	const int FLASH_READ_NUM_REGS[2] = {26, 12};
 
 	float calValue = 0.0;
 	int calIndex = 0;
@@ -132,7 +132,7 @@ int getCalibrationT4(EthernetClient * sock, DeviceCalibrationT4 *devCal)
 	int i = 0;
 	int j = 0;
 
-	for(i = 0; i < 4; i++)
+	for(i = 0; i < 2; i++)
 	{
 		//Set the pointer. This	indicates which	part of the memory we want to read
 		uint32ToBytes(EFAdd_CalValues + i * 13 * 4, data);
