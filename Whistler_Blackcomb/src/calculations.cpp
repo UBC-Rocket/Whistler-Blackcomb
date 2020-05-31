@@ -49,3 +49,7 @@ void updateAverageMCP9808(float pastData[], float *newData){
     *newData=sum/BNO080DataLength;
 }
 
+// int test(){
+//     return 3;
+// }
+

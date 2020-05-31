@@ -21,4 +21,6 @@ void updateAverageBNO080(float pastData[][15], float newData[]);
 
 void updateAverageMCP9808(float pastData[], float *newData);
 
+// int test();
+
 #endif

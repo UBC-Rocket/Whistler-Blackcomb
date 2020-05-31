@@ -1,97 +1,131 @@
 //make sure to select teensy 3.6 for boards
 
 /*Includes---------------------------------------------------------*/
-#include "includes\sensors.h"
-#include "includes\calculations.h"
-#include "includes\prediction.h"
+#include "./includes/sensors.h"
+#include "./includes/calculations.h"
+#include "./includes/prediction.h"
 
 #include <SoftwareSerial.h>
-#include "includes\modbus.h"
-#include "includes\stream.h"
+#include "./includes/modbus.h"
+#include "./includes/stream.h"
 
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <SPI.h>
-#include <ArduinoRS485.h>
-#include <ArduinoModbus.h>
 
-/*
-struct LJConfig conT7;
-struct LJConfig conT4;
+BNO080 myIMU;
+unsigned long lastTime;
+quaternion orientation;
+quaternion acceleration;
 
-DeviceCalibrationT7 devCalT7;
-DeviceCalibrationT4 devCalT4;
-
-float labjackData[STREAM_MAX_SAMPLES_PER_PACKET_TCP] = {0};
-
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }; // Our mac address. This is arbitrary
-IPAddress ip(192, 168, 1, 178); // Our IP address. This is arbitrary
-
-float labjackTemp; */
-
-static unsigned long delta_time_set[15];
-
-LIS331 accel1;
-BNO080 accel2;
-Adafruit_MCP9808 temp =Adafruit_MCP9808();
-
-// GPS 
-TinyGPSPlus gps;
-static const int RXPin = 4, TXPin = 3;
-static const uint32_t GPSBaud = 4800;
-float lat;
-float lon;
-
-SoftwareSerial ss(RXPin, TXPin); // The serial connection to the GPS device
-
-//BNO080 myBNO080;
-int16_t accel1Data[3];
-float accel2Data[3];
-float tempData;
-
+float gravityAccel[3];
+float position[] = {0, 0, 0};
+float velocity[] = {0, 0, 0};
+float accel[] = {0, 0, 0};
+// Dummy covariance matrices for now since these are yet to be determined
+float stateCovariance[][2][2] = {{{0, 0}, {0, 0}}, {{0, 0}, {0, 0}}, {{0, 0}, {0, 0}}};
+float processCovariance[2][2] = {{0, 0}, {0, 0}};
 
 void setup() { 
-  Serial.begin(9600);
-  Wire.begin();
-  delay(500);
-  initLIS331(&accel1, 0x19);
-  initBNO080(&accel2, 0x4B, 50);
-  initMCP9808(&temp, 0x18, 3);
-  ss.begin(GPSBaud); 
-  
+    Serial.begin(9600);
+    Wire.begin();
+    Wire.setClock(400000);
+    delay(500);
+
+    myIMU.begin();
+    myIMU.enableGameRotationVector(50);
+    myIMU.enableGyro(50);
+    myIMU.enableAccelerometer(50);
+
+    orientation.q0 = 1;
+    orientation.q1 = 0;
+    orientation.q2 = 0;
+    orientation.q3 = 0;
+
+    // Get initial gravity acceleration
+    while(!myIMU.dataAvailable() || myIMU.getAccelZ() == 0){
+        delay(10);
+    }
+
+    gravityAccel[0] = myIMU.getAccelX();
+    gravityAccel[1] = myIMU.getAccelY();
+    gravityAccel[2] = myIMU.getAccelZ();
+    Serial.println(gravityAccel[2]);
 }
 
 void loop()
 {
-	//labjackRead(&conT7, &devCalT7, labjackData);
-	// Serial.println(voltsToTempT(labjackData[1], labjackData[0] * (-92.6) + 194.45), 7);
-	//  Serial.println(voltsToTempT(-0.0005, -24));
+    if(myIMU.dataAvailable()){
+        // Quaternion from sensor library
+        float quatI = myIMU.getQuatI();
+        float quatJ = myIMU.getQuatJ();
+        float quatK = myIMU.getQuatK();
+        float quatReal = myIMU.getQuatReal();
+        float quatRadianAccuracy = myIMU.getQuatRadianAccuracy();
+        Serial.print(quatI, 2);
+        Serial.print(", ");
+        Serial.print(quatJ, 2);
+        Serial.print(", ");
+        Serial.print(quatK, 2);
+        Serial.print(", ");
+        Serial.print(quatReal, 2);
+        Serial.println();
 
-	static unsigned long old_time = 0; //ms
-    static unsigned long new_time = 0; //ms
-    unsigned long delta_time;
-	static float alt, x, y, z;
+        float x = myIMU.getGyroX();
+        float y = myIMU.getGyroY();
+        float z = myIMU.getGyroZ();
+        acceleration.q0 = 0;
+        acceleration.q1 = myIMU.getAccelX();
+        acceleration.q2 = myIMU.getAccelY();
+        acceleration.q3 = myIMU.getAccelZ();
 
-	new_time = millis();
-    if ((new_time - old_time) >= 50) {
-        delta_time = new_time - old_time;
-        old_time = new_time;
+        // Get calculated orientation quaternion
+        orientation = getOrientation((millis() - lastTime) / 1000.0, orientation, x, y, z);
+        // Convert relative acceleration to world reference acceleration
+        acceleration = qMult(qMult(orientation, acceleration), qConjugate(orientation));
 
-		readAxesBNO080(&imu, x, y, z);
+        accel[0] = acceleration.q1 - gravityAccel[0];
+        accel[1] = acceleration.q2 - gravityAccel[1];
+        accel[2] = acceleration.q3 - gravityAccel[2];
 
-		predictionCalculation(&delta_time, delta_time_set, &alt, &x, &y, &z);
+        // Predict phase of Kalman filter (without GPS, all we can do)
+        predictFilter((millis() - lastTime) / 1000.0, position, velocity, accel, stateCovariance, processCovariance);
+        
+        // float mat[][2] = {{1, 2}, {3, 4}};
+        // transpose(mat);
+        Serial.print(orientation.q1, 2);
+        Serial.print(", ");
+        Serial.print(orientation.q2, 2);
+        Serial.print(", ");
+        Serial.print(orientation.q3, 2);
+        Serial.print(", ");
+        Serial.print(orientation.q0, 2);
+        Serial.println();
+        Serial.print(accel[0], 2);
+        Serial.print(", ");
+        Serial.print(accel[0], 2);
+        Serial.print(", ");
+        Serial.print(accel[1], 2);
+        Serial.print(", ");
+        Serial.print(accel[2], 2);
+        Serial.println();
 
-	}
+        Serial.print(position[0], 2);
+        Serial.print(", ");
+        Serial.print(position[1], 2);
+        Serial.print(", ");
+        Serial.print(position[2], 2);
+        Serial.println();
+        Serial.println();
+
+        // For first 2 seconds continuously update the average acceleration due to gravity (you have to leave IMU completely still for this time)
+        if(millis() < 2000){
+            int n = millis() / 50;
+            gravityAccel[0] = (gravityAccel[0] * n + myIMU.getAccelX()) / (n+1);
+            gravityAccel[1] = (gravityAccel[1] * n + myIMU.getAccelY()) / (n+1);
+            gravityAccel[2] = (gravityAccel[2] * n + myIMU.getAccelZ()) / (n+1);
+        }
+
+        lastTime = millis();
+    }
 }
-
-// This custom version of delay() ensures that the gps object
-// is being "fed".
-// static void smartDelay(unsigned long ms)
-// {
-// 	unsigned long start = millis();
-// 	do
-// 	{
-// 		while (ss.available())
-// 			gps.encode(ss.read());
-// 	} while (millis() - start < ms);
-// }
